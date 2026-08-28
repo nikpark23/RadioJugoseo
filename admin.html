@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Administrativo - Jugoseo.com</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+
+  <script>
+    // ---------------------------------------------------------
+    // RF11 - Control de acceso por rol: solo Administrador
+    // ---------------------------------------------------------
+    const sesionAdminGuard = JSON.parse(sessionStorage.getItem('jugoseoUsuario') || 'null');
+    if (!sesionAdminGuard) {
+      window.location.replace('index.html');
+    } else if (sesionAdminGuard.rol !== 'Administrador') {
+      window.location.replace('app.html');
+    }
+  </script>
+</head>
+<body class="jugoseo-admin-body">
+
+  <div class="jugoseo-admin-layout">
+
+    <!-- ===================== SIDEBAR (RF09) ===================== -->
+    <aside class="jugoseo-admin-sidebar">
+      <div class="jugoseo-brand jugoseo-admin-brand">
+        JUGOSEO<span class="jugoseo-brand-dot">.com</span>
+      </div>
+      <p class="jugoseo-admin-subtitulo">Panel Administrativo</p>
+
+      <nav class="nav flex-column mt-3">
+        <a href="#" class="nav-link jugoseo-admin-link active" data-seccion="dashboard">📊 Dashboard</a>
+        <a href="#" class="nav-link jugoseo-admin-link" data-seccion="productos">🛍️ Productos</a>
+        <a href="#" class="nav-link jugoseo-admin-link" data-seccion="radioescuchas">🎧 Radioescuchas</a>
+      </nav>
+
+      <div class="mt-auto pt-4">
+        <a href="app.html" class="btn btn-outline-light btn-sm w-100 mb-2">Volver al sitio</a>
+        <button class="btn btn-outline-danger btn-sm w-100" id="btnCerrarSesionAdmin">Cerrar sesión</button>
+      </div>
+    </aside>
+
+    <!-- ===================== CONTENIDO ===================== -->
+    <main class="jugoseo-admin-contenido">
+
+      <!-- Dashboard -->
+      <section id="seccion-dashboard" class="jugoseo-admin-seccion">
+        <h1 class="pagina-titulo h3 mb-4">Dashboard</h1>
+        <div class="row g-3">
+          <div class="col-sm-6 col-lg-3">
+            <div class="jugoseo-card text-center">
+              <div class="jugoseo-admin-stat" id="statProductos">0</div>
+              <div class="jugoseo-card-texto">Productos en catálogo</div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-lg-3">
+            <div class="jugoseo-card text-center">
+              <div class="jugoseo-admin-stat" id="statStockBajo">0</div>
+              <div class="jugoseo-card-texto">Con stock bajo (≤5)</div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-lg-3">
+            <div class="jugoseo-card text-center">
+              <div class="jugoseo-admin-stat" id="statRadioescuchas">0</div>
+              <div class="jugoseo-card-texto">Radioescuchas registrados</div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-lg-3">
+            <div class="jugoseo-card text-center">
+              <div class="jugoseo-admin-stat" id="statSociosVip">0</div>
+              <div class="jugoseo-card-texto">Socios VIP</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Mantenedor de Productos -->
+      <section id="seccion-productos" class="jugoseo-admin-seccion d-none">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h1 class="pagina-titulo h3 mb-0">Productos</h1>
+          <button class="btn jugoseo-btn-login" id="btnNuevoProducto">+ Nuevo producto</button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table jugoseo-tabla-programas align-middle">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Categoría</th>
+                <th>Precio</th>
+                <th>Stock</th>
+                <th class="text-end">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="cuerpoTablaProductos"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Mantenedor de Radioescuchas -->
+      <section id="seccion-radioescuchas" class="jugoseo-admin-seccion d-none">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h1 class="pagina-titulo h3 mb-0">Radioescuchas / Socios</h1>
+          <button class="btn jugoseo-btn-login" id="btnNuevoRadioescucha">+ Nuevo radioescucha</button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table jugoseo-tabla-programas align-middle">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Correo</th>
+                <th>RUN</th>
+                <th>Región / Comuna</th>
+                <th>Tipo</th>
+                <th class="text-end">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="cuerpoTablaRadioescuchas"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ===================== MODAL: PRODUCTO ===================== -->
+  <div class="modal fade" id="modalProducto" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content jugoseo-modal">
+        <div class="modal-header border-0">
+          <h5 class="modal-title jugoseo-modal-title" id="modalProductoLabel">Nuevo producto</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formProducto">
+            <input type="hidden" id="productoIdEditando">
+            <div class="mb-3">
+              <label for="productoNombre" class="form-label jugoseo-form-label">Nombre</label>
+              <input type="text" class="form-control jugoseo-input" id="productoNombre" required>
+            </div>
+            <div class="mb-3">
+              <label for="productoCategoria" class="form-label jugoseo-form-label">Categoría</label>
+              <input type="text" class="form-control jugoseo-input" id="productoCategoria" required>
+            </div>
+            <div class="row g-3">
+              <div class="col-6">
+                <label for="productoPrecio" class="form-label jugoseo-form-label">Precio (CLP)</label>
+                <input type="number" class="form-control jugoseo-input" id="productoPrecio" min="0" required>
+              </div>
+              <div class="col-6">
+                <label for="productoStock" class="form-label jugoseo-form-label">Stock</label>
+                <input type="number" class="form-control jugoseo-input" id="productoStock" min="0" required>
+              </div>
+            </div>
+            <button type="submit" class="btn jugoseo-btn-login w-100 mt-4">Guardar producto</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL: RADIOESCUCHA ===================== -->
+  <div class="modal fade" id="modalRadioescucha" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content jugoseo-modal">
+        <div class="modal-header border-0">
+          <h5 class="modal-title jugoseo-modal-title" id="modalRadioescuchaLabel">Nuevo radioescucha</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formRadioescucha">
+            <input type="hidden" id="radioescuchaIndiceEditando">
+            <div class="row g-3">
+              <div class="col-6">
+                <label for="radioescuchaNombre" class="form-label jugoseo-form-label">Nombre</label>
+                <input type="text" class="form-control jugoseo-input" id="radioescuchaNombre" required>
+              </div>
+              <div class="col-6">
+                <label for="radioescuchaApellido" class="form-label jugoseo-form-label">Apellido</label>
+                <input type="text" class="form-control jugoseo-input" id="radioescuchaApellido" required>
+              </div>
+            </div>
+            <div class="mb-3 mt-3">
+              <label for="radioescuchaCorreo" class="form-label jugoseo-form-label">Correo</label>
+              <input type="email" class="form-control jugoseo-input" id="radioescuchaCorreo" required>
+            </div>
+            <div class="mb-3">
+              <label for="radioescuchaRun" class="form-label jugoseo-form-label">RUN</label>
+              <input type="text" class="form-control jugoseo-input" id="radioescuchaRun" required>
+            </div>
+            <div class="row g-3">
+              <div class="col-6">
+                <label for="radioescuchaRegion" class="form-label jugoseo-form-label">Región</label>
+                <input type="text" class="form-control jugoseo-input" id="radioescuchaRegion" required>
+              </div>
+              <div class="col-6">
+                <label for="radioescuchaComuna" class="form-label jugoseo-form-label">Comuna</label>
+                <input type="text" class="form-control jugoseo-input" id="radioescuchaComuna" required>
+              </div>
+            </div>
+            <div class="mt-3">
+              <label for="radioescuchaTipo" class="form-label jugoseo-form-label">Tipo</label>
+              <select class="form-select jugoseo-input" id="radioescuchaTipo">
+                <option value="Socio VIP">Socio VIP</option>
+                <option value="Radioescucha Oficial">Radioescucha Oficial</option>
+              </select>
+            </div>
+            <button type="submit" class="btn jugoseo-btn-login w-100 mt-4">Guardar radioescucha</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastContenedor" class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1080;"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/productos-data.js"></script>
+  <script src="js/admin.js"></script>
+  <script>
+    document.getElementById('btnCerrarSesionAdmin').addEventListener('click', () => {
+      sessionStorage.removeItem('jugoseoUsuario');
+      window.location.href = 'index.html';
+    });
+  </script>
+
+</body>
+</html>

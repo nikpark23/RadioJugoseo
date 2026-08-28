@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tienda - Jugoseo.com</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="jugoseo-fondo-oscuro-2">
+  
+  <section class="pagina-interna">
+    <div class="container">
+
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div>
+          <h1 class="pagina-titulo h3 mb-1">Tienda</h1>
+          <p class="mb-0" style="color: var(--jugoseo-texto-tenue);">
+            Merch oficial y entradas a eventos de Jugoseo.
+          </p>
+        </div>
+
+        <button class="btn jugoseo-btn-login position-relative" type="button"
+                data-bs-toggle="offcanvas" data-bs-target="#offcanvasCarrito" aria-controls="offcanvasCarrito">
+          🛒 Ver carrito
+          <span id="contadorCarrito" class="jugoseo-cart-badge d-none">0</span>
+        </button>
+      </div>
+
+      <!-- RF02: el contenido de este grid se genera dinámicamente desde js/tienda.js -->
+      <div class="row g-4" id="gridProductos"></div>
+
+    </div>
+  </section>
+
+  <!-- ===================== OFFCANVAS: CARRITO ===================== -->
+  <div class="offcanvas offcanvas-end jugoseo-offcanvas" tabindex="-1" id="offcanvasCarrito" aria-labelledby="offcanvasCarritoLabel">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title jugoseo-modal-title" id="offcanvasCarritoLabel">Tu carrito</h5>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+    </div>
+    <div class="offcanvas-body d-flex flex-column">
+
+      <div id="listaCarrito" class="flex-grow-1"></div>
+
+      <div class="jugoseo-carrito-resumen mt-3 pt-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <span class="jugoseo-card-titulo">Total</span>
+          <span class="jugoseo-card-precio fs-5" id="totalCarrito">$0</span>
+        </div>
+        <button class="btn jugoseo-btn-login w-100 mb-2" id="btnPagar">Ir a pagar</button>
+        <button class="btn btn-outline-light w-100" id="btnVaciarCarrito">Vaciar carrito</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Contenedor de notificaciones (RNF02: mensajes dinámicos sin recargar) -->
+  <div id="toastContenedor" class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1080;"></div>
+
+  <!-- Bootstrap JS (necesario para offcanvas y toasts) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/tienda.js"></script>
+
+  <script>
+    // El pago se deja pendiente hasta implementar el backend
+    document.getElementById('btnPagar').addEventListener('click', () => {
+      mostrarToast('El pago se habilitará más adelante. Por ahora, tu carrito queda guardado.', 'info');
+    });
+  </script>
+
+</body>
+</html>

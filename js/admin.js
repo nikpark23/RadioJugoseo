@@ -50,13 +50,14 @@ function renderizarTablaProductos() {
   cuerpo.innerHTML = '';
 
   if (productosAdmin.length === 0) {
-    cuerpo.innerHTML = '<tr><td colspan="5" class="text-center jugoseo-card-texto py-3">Sin productos aún.</td></tr>';
+    cuerpo.innerHTML = '<tr><td colspan="6" class="text-center jugoseo-card-texto py-3">Sin productos aún.</td></tr>';
     return;
   }
 
   productosAdmin.forEach(producto => {
     const fila = document.createElement('tr');
     fila.innerHTML = `
+      <td><img src="${producto.imagen || IMAGEN_PRODUCTO_GENERICA}" alt="${producto.nombre}" style="width:42px;height:42px;object-fit:cover;border-radius:6px;" class="me-2"></td>
       <td>${producto.nombre}</td>
       <td>${producto.categoria}</td>
       <td>$${producto.precio.toLocaleString('es-CL')}</td>
@@ -82,6 +83,7 @@ function abrirFormularioProducto(id = null) {
     document.getElementById('productoCategoria').value = producto.categoria;
     document.getElementById('productoPrecio').value = producto.precio;
     document.getElementById('productoStock').value = producto.stock;
+    document.getElementById('productoImagen').value = producto.imagen || '';
   } else {
     document.getElementById('modalProductoLabel').textContent = 'Nuevo producto';
   }
@@ -97,6 +99,7 @@ function guardarProductoAdmin(evento) {
   const categoria = document.getElementById('productoCategoria').value.trim();
   const precio = parseInt(document.getElementById('productoPrecio').value, 10);
   const stock = parseInt(document.getElementById('productoStock').value, 10);
+  const imagen = document.getElementById('productoImagen').value.trim();
 
   if (!nombre || !categoria || isNaN(precio) || precio < 0 || isNaN(stock) || stock < 0) {
     mostrarToastAdmin('Revisa los datos del producto: todos los campos son obligatorios y deben ser válidos.', 'error');
@@ -109,10 +112,11 @@ function guardarProductoAdmin(evento) {
     producto.categoria = categoria;
     producto.precio = precio;
     producto.stock = stock;
+    producto.imagen = imagen;
     mostrarToastAdmin('Producto actualizado.', 'exito');
   } else {
-    productosAdmin.push({ id: generarIdProducto(productosAdmin), nombre, categoria, precio, stock });
-    mostrarToastAdmin('Producto creado.', 'exito');
+    productosAdmin.push({ id: generarIdProducto(productosAdmin), nombre, categoria, precio, stock, imagen });
+    mostrarToastAdmin('Producto creado. Ya está disponible en la Tienda.', 'exito');
   }
 
   guardarProductos(productosAdmin);
@@ -175,6 +179,7 @@ function abrirFormularioRadioescucha(indice = null) {
     document.getElementById('radioescuchaRegion').value = persona.region;
     document.getElementById('radioescuchaComuna').value = persona.comuna;
     document.getElementById('radioescuchaTipo').value = persona.tipo;
+    document.getElementById('radioescuchaPassword').value = '';
   } else {
     document.getElementById('modalRadioescuchaLabel').textContent = 'Nuevo radioescucha';
   }
@@ -186,10 +191,11 @@ function guardarRadioescuchaAdmin(evento) {
   evento.preventDefault();
 
   const indiceEditando = document.getElementById('radioescuchaIndiceEditando').value;
+  const passwordIngresada = document.getElementById('radioescuchaPassword').value;
   const datos = {
     nombre: document.getElementById('radioescuchaNombre').value.trim(),
     apellido: document.getElementById('radioescuchaApellido').value.trim(),
-    correo: document.getElementById('radioescuchaCorreo').value.trim(),
+    correo: document.getElementById('radioescuchaCorreo').value.trim().toLowerCase(),
     run: document.getElementById('radioescuchaRun').value.trim().toUpperCase(),
     region: document.getElementById('radioescuchaRegion').value.trim(),
     comuna: document.getElementById('radioescuchaComuna').value.trim(),
@@ -201,10 +207,32 @@ function guardarRadioescuchaAdmin(evento) {
     return;
   }
 
+  if (passwordIngresada && (passwordIngresada.length < 4 || passwordIngresada.length > 10)) {
+    mostrarToastAdmin('La contraseña debe tener entre 4 y 10 caracteres.', 'error');
+    return;
+  }
+
   if (indiceEditando !== '') {
+    // Edición: si dejó la contraseña vacía, se mantiene la que ya tenía.
+    datos.password = passwordIngresada || radioescuchasAdmin[parseInt(indiceEditando, 10)].password;
+    if (!datos.password) {
+      mostrarToastAdmin('Esta cuenta aún no tiene contraseña; ingresa una para que pueda iniciar sesión.', 'error');
+      return;
+    }
     radioescuchasAdmin[parseInt(indiceEditando, 10)] = datos;
     mostrarToastAdmin('Radioescucha actualizado.', 'exito');
   } else {
+    // Creación: la contraseña es obligatoria para que la cuenta pueda hacer login.
+    if (!passwordIngresada) {
+      mostrarToastAdmin('Debes ingresar una contraseña para que la cuenta pueda iniciar sesión.', 'error');
+      return;
+    }
+    const correoDuplicado = radioescuchasAdmin.some(r => (r.correo || '').toLowerCase() === datos.correo);
+    if (correoDuplicado) {
+      mostrarToastAdmin('Ya existe un radioescucha registrado con ese correo.', 'error');
+      return;
+    }
+    datos.password = passwordIngresada;
     radioescuchasAdmin.push(datos);
     mostrarToastAdmin('Radioescucha creado.', 'exito');
   }

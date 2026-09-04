@@ -90,6 +90,7 @@
           <table class="table jugoseo-tabla-programas align-middle">
             <thead>
               <tr>
+                <th>Imagen</th>
                 <th>Nombre</th>
                 <th>Categoría</th>
                 <th>Precio</th>
@@ -158,6 +159,10 @@
                 <input type="number" class="form-control jugoseo-input" id="productoStock" min="0" required>
               </div>
             </div>
+            <div class="mt-3">
+              <label for="productoImagen" class="form-label jugoseo-form-label">Imagen (ruta o URL, opcional)</label>
+              <input type="text" class="form-control jugoseo-input" id="productoImagen" placeholder="img/mi-producto.png">
+            </div>
             <button type="submit" class="btn jugoseo-btn-login w-100 mt-4">Guardar producto</button>
           </form>
         </div>
@@ -193,6 +198,11 @@
             <div class="mb-3">
               <label for="radioescuchaRun" class="form-label jugoseo-form-label">RUN</label>
               <input type="text" class="form-control jugoseo-input" id="radioescuchaRun" required>
+            </div>
+            <div class="mb-3">
+              <label for="radioescuchaPassword" class="form-label jugoseo-form-label">Contraseña (4 a 10 caracteres)</label>
+              <input type="password" class="form-control jugoseo-input" id="radioescuchaPassword" minlength="4" maxlength="10" placeholder="Déjalo vacío para no cambiarla">
+              <div id="radioescuchaPasswordAyuda" class="jugoseo-card-texto mt-1" style="font-size:0.8rem;">Obligatoria al crear una cuenta nueva.</div>
             </div>
             <div class="row g-3">
               <div class="col-6">

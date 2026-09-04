@@ -48,6 +48,19 @@
 
         <div class="row g-3 mt-1">
           <div class="col-md-6">
+            <label for="regPassword" class="form-label jugoseo-form-label">Contraseña</label>
+            <input type="password" class="form-control jugoseo-input" id="regPassword" minlength="4" maxlength="10" placeholder="4 a 10 caracteres" required>
+            <div class="invalid-feedback">La contraseña debe tener entre 4 y 10 caracteres.</div>
+          </div>
+          <div class="col-md-6">
+            <label for="regPasswordConfirm" class="form-label jugoseo-form-label">Confirmar contraseña</label>
+            <input type="password" class="form-control jugoseo-input" id="regPasswordConfirm" minlength="4" maxlength="10" placeholder="Repite tu contraseña" required>
+            <div class="invalid-feedback">Las contraseñas no coinciden.</div>
+          </div>
+        </div>
+
+        <div class="row g-3 mt-1">
+          <div class="col-md-6">
             <label for="regRegion" class="form-label jugoseo-form-label">Región</label>
             <select class="form-select jugoseo-input" id="regRegion" required>
               <option value="" selected disabled>Selecciona una región</option>

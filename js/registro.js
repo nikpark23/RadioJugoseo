@@ -92,6 +92,35 @@ function validarRun(runIngresado) {
 }
 
 // ---------------------------------------------------------
+// RF: Validación de contraseña (4 a 10 caracteres)
+// ---------------------------------------------------------
+function validarPassword(elementoPassword, elementoConfirmar) {
+  const password = elementoPassword.value;
+  const confirmar = elementoConfirmar.value;
+
+  if (!password) {
+    marcarValidez(elementoPassword, false, 'La contraseña es obligatoria.');
+    return false;
+  }
+  if (password.length < 4 || password.length > 10) {
+    marcarValidez(elementoPassword, false, 'La contraseña debe tener entre 4 y 10 caracteres.');
+    return false;
+  }
+  marcarValidez(elementoPassword, true);
+
+  if (!confirmar) {
+    marcarValidez(elementoConfirmar, false, 'Confirma tu contraseña.');
+    return false;
+  }
+  if (confirmar !== password) {
+    marcarValidez(elementoConfirmar, false, 'Las contraseñas no coinciden.');
+    return false;
+  }
+  marcarValidez(elementoConfirmar, true);
+  return true;
+}
+
+// ---------------------------------------------------------
 // RNF02: Marcar un campo como válido/ inválido en tiempo real
 // ---------------------------------------------------------
 function marcarValidez(elemento, esValido, mensajeError) {
@@ -141,6 +170,8 @@ function manejarEnvioRegistro(evento) {
   const run = document.getElementById('regRun');
   const region = document.getElementById('regRegion');
   const comuna = document.getElementById('regComuna');
+  const password = document.getElementById('regPassword');
+  const passwordConfirm = document.getElementById('regPasswordConfirm');
   const tipoSocio = document.querySelector('input[name="tipoSocio"]:checked');
   const mensajeTipoSocio = document.getElementById('errorTipoSocio');
 
@@ -169,6 +200,8 @@ function manejarEnvioRegistro(evento) {
   formularioValido = validarCampoObligatorio(region, 'La región') && formularioValido;
   formularioValido = validarCampoObligatorio(comuna, 'La comuna') && formularioValido;
 
+  formularioValido = validarPassword(password, passwordConfirm) && formularioValido;
+
   if (!tipoSocio) {
     mensajeTipoSocio.classList.remove('d-none');
     formularioValido = false;
@@ -181,14 +214,25 @@ function manejarEnvioRegistro(evento) {
     return;
   }
 
+  const correoLimpio = correo.value.trim().toLowerCase();
+  const listaActual = JSON.parse(localStorage.getItem(CLAVE_RADIOESCUCHAS)) || [];
+  const correoYaExiste = listaActual.some(r => (r.correo || '').toLowerCase() === correoLimpio);
+
+  if (correoYaExiste) {
+    marcarValidez(correo, false, 'Ya existe una cuenta registrada con este correo.');
+    mostrarToastRegistro('Ese correo ya está registrado. Intenta iniciar sesión.', 'error');
+    return;
+  }
+
   guardarRadioescucha({
     nombre: nombre.value.trim(),
     apellido: apellido.value.trim(),
-    correo: correo.value.trim(),
+    correo: correoLimpio,
     run: runLimpio,
     region: region.value,
     comuna: comuna.value,
     tipo: tipoSocio.value,
+    password: password.value,
   });
 
   mostrarToastRegistro(`¡Listo, ${nombre.value.trim()}! Tu registro como ${tipoSocio.value} fue guardado.`, 'exito');
@@ -245,5 +289,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const resultado = validarRun(valor);
     marcarValidez(this, resultado.valido, resultado.mensaje);
+  });
+
+  const campoPassword = document.getElementById('regPassword');
+  const campoPasswordConfirm = document.getElementById('regPasswordConfirm');
+  campoPassword.addEventListener('blur', function () {
+    validarPassword(campoPassword, campoPasswordConfirm);
+  });
+  campoPasswordConfirm.addEventListener('blur', function () {
+    validarPassword(campoPassword, campoPasswordConfirm);
   });
 });

@@ -9,16 +9,9 @@
 const CLAVE_CARRITO = 'jugoseoCarrito';
 
 // ---------------------------------------------------------
-// RF02: Catálogo de productos (fuente de datos en JS)
+// RF02: Catálogo de productos (fuente compartida: productos-data.js)
 // ---------------------------------------------------------
-const PRODUCTOS = [
-  { id: 1, nombre: 'Polera Jugoseo Classic', categoria: 'Poleras', precio: 14990, stock: 12 },
-  { id: 2, nombre: 'Taza Jugoseo Neon',       categoria: 'Tazas',   precio: 6990,  stock: 20 },
-  { id: 3, nombre: 'Gorro Jugoseo',           categoria: 'Accesorios', precio: 9990, stock: 8 },
-  { id: 4, nombre: 'Sticker Pack Jugoseo',    categoria: 'Accesorios', precio: 3490, stock: 50 },
-  { id: 5, nombre: 'Vinilo Jugoseo Sessions', categoria: 'Vinilos', precio: 19990, stock: 5 },
-  { id: 6, nombre: 'Entrada Jugoseo Fest',    categoria: 'Eventos', precio: 12000, stock: 3 },
-];
+let PRODUCTOS = [];
 
 let carrito = [];
 
@@ -77,7 +70,7 @@ function renderizarProductos() {
     col.className = 'col-sm-6 col-lg-4 col-xl-3';
     col.innerHTML = `
       <div class="jugoseo-card d-flex flex-column h-100">
-        <div class="jugoseo-card-img"></div>
+       <img src="${producto.imagen || IMAGEN_PRODUCTO_GENERICA}" alt="${producto.nombre}" class="jugoseo-card-img" loading="lazy">
         <span class="jugoseo-badge mb-2 d-inline-block">${producto.categoria}</span>
         <div class="jugoseo-card-titulo">${producto.nombre}</div>
         <p class="jugoseo-card-texto mb-1">
@@ -220,6 +213,7 @@ function renderizarCarrito() {
 // Inicio
 // ---------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
+  PRODUCTOS = obtenerProductos();
   cargarCarrito();
   renderizarProductos();
   renderizarCarrito();

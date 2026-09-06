@@ -45,16 +45,29 @@ function renderizarNoticias() {
 
   grid.innerHTML = '';
 
+  // Validación cuando no hay noticias disponibles
+  if (NOTICIAS.length === 0) {
+    grid.innerHTML = '<p class="jugoseo-card-texto">No hay noticias disponibles por el momento.</p>';
+    return;
+  }
+
   NOTICIAS.forEach(noticia => {
     const col = document.createElement('div');
     col.className = 'col-md-6';
+    
+    // Validación de ruta de detalle
+    const tienePaginaValida = noticia.pagina && noticia.pagina.trim() !== '' && noticia.pagina.endsWith('.html');
+    const enlaceHTML = tienePaginaValida 
+      ? `<a href="${noticia.pagina}" class="btn jugoseo-btn-login mt-auto align-self-start px-3">Leer más</a>`
+      : `<span class="jugoseo-card-texto mt-auto align-self-start px-3" style="color: var(--jugoseo-texto-tenue);">Detalle no disponible</span>`;
+    
     col.innerHTML = `
       <article class="jugoseo-card d-flex flex-column h-100">
         <span class="jugoseo-badge mb-2 d-inline-block">${noticia.categoria}</span>
         <div class="jugoseo-card-titulo">${noticia.titulo}</div>
         <p class="jugoseo-card-texto mt-2 mb-1">${noticia.resumen}</p>
         <small class="jugoseo-card-texto mb-3">${noticia.fecha}</small>
-        <a href="${noticia.pagina}" class="btn jugoseo-btn-login mt-auto align-self-start px-3">Leer más</a>
+        ${enlaceHTML}
       </article>`;
     grid.appendChild(col);
   });

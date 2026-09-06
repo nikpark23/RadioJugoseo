@@ -49,15 +49,28 @@ function renderizarProgramas() {
 
   grid.innerHTML = '';
 
+  // Validación cuando no hay programas disponibles
+  if (PROGRAMAS.length === 0) {
+    grid.innerHTML = '<p class="jugoseo-card-texto">No hay programas disponibles por el momento.</p>';
+    return;
+  }
+
   PROGRAMAS.forEach(programa => {
     const col = document.createElement('div');
     col.className = 'col-sm-6 col-lg-3';
+    
+    // Validación de ruta de detalle
+    const tienePaginaValida = programa.pagina && programa.pagina.trim() !== '' && programa.pagina.endsWith('.html');
+    const enlaceHTML = tienePaginaValida 
+      ? `<a href="${programa.pagina}" class="btn jugoseo-btn-login mt-auto">Ir al Programa</a>`
+      : `<span class="jugoseo-card-texto mt-auto" style="color: var(--jugoseo-texto-tenue);">Detalle no disponible</span>`;
+    
     col.innerHTML = `
       <div class="jugoseo-card d-flex flex-column h-100">
-        <img src="${programa.imagen}" alt="${programa.nombre}" class="jugoseo-card-img" loading="lazy">
+        <img src="${programa.imagen}" alt="${programa.nombre}" class="jugoseo-card-img" loading="lazy" onerror="this.style.display='none'">
         <div class="jugoseo-card-titulo mb-1">${programa.nombre}</div>
         <p class="jugoseo-card-texto mb-3">${programa.descripcion}</p>
-        <a href="${programa.pagina}" class="btn jugoseo-btn-login mt-auto">Ir al Programa</a>
+        ${enlaceHTML}
       </div>`;
     grid.appendChild(col);
   });

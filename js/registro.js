@@ -9,6 +9,12 @@
 const CLAVE_RADIOESCUCHAS = 'jugoseoRadioescuchas';
 
 // ---------------------------------------------------------
+// RF05: Tipos de usuario implementados
+// Nota: El sistema utiliza "Socio VIP" y "Radioescucha Oficial" 
+// como tipos de usuario, consistentes entre registro y admin
+// ---------------------------------------------------------
+
+// ---------------------------------------------------------
 // RF06: Datos de Región -> Comunas (subset representativo)
 // ---------------------------------------------------------
 const REGIONES_COMUNAS = {
@@ -43,6 +49,11 @@ function actualizarComunas() {
   selectComuna.innerHTML = '<option value="" selected disabled>Selecciona una comuna</option>';
 
   if (region && REGIONES_COMUNAS[region]) {
+    if (REGIONES_COMUNAS[region].length === 0) {
+      selectComuna.disabled = true;
+      marcarValidez(selectComuna, false, 'No hay comunas disponibles para esta región.');
+      return;
+    }
     selectComuna.disabled = false;
     REGIONES_COMUNAS[region].forEach(comuna => {
       const opcion = document.createElement('option');
@@ -89,6 +100,15 @@ function validarRun(runIngresado) {
   }
 
   return { valido: true, mensaje: '' };
+}
+
+// ---------------------------------------------------------
+// RF: Validación de dominios de correo autorizados
+// ---------------------------------------------------------
+function validarDominioCorreo(correo) {
+  const dominiosAutorizados = ['@duoc.cl', '@profesor.duoc.cl', '@gmail.com'];
+  const dominio = correo.substring(correo.lastIndexOf('@'));
+  return dominiosAutorizados.includes(dominio);
 }
 
 // ---------------------------------------------------------
@@ -139,10 +159,14 @@ function marcarValidez(elemento, esValido, mensajeError) {
   }
 }
 
-function validarCampoObligatorio(elemento, nombreCampo) {
+function validarCampoObligatorio(elemento, nombreCampo, longitudMaxima = null) {
   const valor = elemento.value.trim();
   if (!valor) {
     marcarValidez(elemento, false, `${nombreCampo} es obligatorio.`);
+    return false;
+  }
+  if (longitudMaxima && valor.length > longitudMaxima) {
+    marcarValidez(elemento, false, `${nombreCampo} no puede superar ${longitudMaxima} caracteres.`);
     return false;
   }
   marcarValidez(elemento, true);
@@ -153,9 +177,15 @@ function validarCampoObligatorio(elemento, nombreCampo) {
 // Guardar el registro (sin backend, en localStorage)
 // ---------------------------------------------------------
 function guardarRadioescucha(datos) {
-  const listaActual = JSON.parse(localStorage.getItem(CLAVE_RADIOESCUCHAS)) || [];
-  listaActual.push(datos);
-  localStorage.setItem(CLAVE_RADIOESCUCHAS, JSON.stringify(listaActual));
+  try {
+    const listaActual = JSON.parse(localStorage.getItem(CLAVE_RADIOESCUCHAS)) || [];
+    listaActual.push(datos);
+    localStorage.setItem(CLAVE_RADIOESCUCHAS, JSON.stringify(listaActual));
+    return true;
+  } catch (error) {
+    console.error('Error al acceder a localStorage:', error);
+    return false;
+  }
 }
 
 // ---------------------------------------------------------
@@ -172,18 +202,23 @@ function manejarEnvioRegistro(evento) {
   const comuna = document.getElementById('regComuna');
   const password = document.getElementById('regPassword');
   const passwordConfirm = document.getElementById('regPasswordConfirm');
+  const fechaNacimiento = document.getElementById('regFechaNacimiento');
+  const direccion = document.getElementById('regDireccion');
   const tipoSocio = document.querySelector('input[name="tipoSocio"]:checked');
   const mensajeTipoSocio = document.getElementById('errorTipoSocio');
 
   let formularioValido = true;
 
-  formularioValido = validarCampoObligatorio(nombre, 'El nombre') && formularioValido;
-  formularioValido = validarCampoObligatorio(apellido, 'El apellido') && formularioValido;
+  formularioValido = validarCampoObligatorio(nombre, 'El nombre', 50) && formularioValido;
+  formularioValido = validarCampoObligatorio(apellido, 'El apellido', 100) && formularioValido;
 
-  if (!validarCampoObligatorio(correo, 'El correo')) {
+  if (!validarCampoObligatorio(correo, 'El correo', 100)) {
     formularioValido = false;
   } else if (!correo.checkValidity()) {
     marcarValidez(correo, false, 'Ingresa un correo con formato válido.');
+    formularioValido = false;
+  } else if (!validarDominioCorreo(correo.value.trim().toLowerCase())) {
+    marcarValidez(correo, false, 'El correo debe pertenecer a @duoc.cl, @profesor.duoc.cl o @gmail.com.');
     formularioValido = false;
   }
 
@@ -202,6 +237,22 @@ function manejarEnvioRegistro(evento) {
 
   formularioValido = validarPassword(password, passwordConfirm) && formularioValido;
 
+  // Validación de fecha de nacimiento (opcional pero válida si se ingresa)
+  if (fechaNacimiento.value && !fechaNacimiento.checkValidity()) {
+    marcarValidez(fechaNacimiento, false, 'Ingresa una fecha válida.');
+    formularioValido = false;
+  } else if (fechaNacimiento.value) {
+    marcarValidez(fechaNacimiento, true);
+  }
+
+  // Validación de dirección (opcional pero con longitud máxima)
+  if (direccion.value && direccion.value.trim().length > 300) {
+    marcarValidez(direccion, false, 'La dirección no puede superar 300 caracteres.');
+    formularioValido = false;
+  } else if (direccion.value) {
+    marcarValidez(direccion, true);
+  }
+
   if (!tipoSocio) {
     mensajeTipoSocio.classList.remove('d-none');
     formularioValido = false;
@@ -217,6 +268,7 @@ function manejarEnvioRegistro(evento) {
   const correoLimpio = correo.value.trim().toLowerCase();
   const listaActual = JSON.parse(localStorage.getItem(CLAVE_RADIOESCUCHAS)) || [];
   const correoYaExiste = listaActual.some(r => (r.correo || '').toLowerCase() === correoLimpio);
+  const runYaExiste = listaActual.some(r => (r.run || '').toUpperCase() === runLimpio);
 
   if (correoYaExiste) {
     marcarValidez(correo, false, 'Ya existe una cuenta registrada con este correo.');
@@ -224,7 +276,13 @@ function manejarEnvioRegistro(evento) {
     return;
   }
 
-  guardarRadioescucha({
+  if (runYaExiste) {
+    marcarValidez(run, false, 'Ya existe una cuenta registrada con este RUN.');
+    mostrarToastRegistro('Este RUN ya está registrado. Intenta iniciar sesión.', 'error');
+    return;
+  }
+
+  const guardadoExitoso = guardarRadioescucha({
     nombre: nombre.value.trim(),
     apellido: apellido.value.trim(),
     correo: correoLimpio,
@@ -233,7 +291,14 @@ function manejarEnvioRegistro(evento) {
     comuna: comuna.value,
     tipo: tipoSocio.value,
     password: password.value,
+    fechaNacimiento: fechaNacimiento.value || null,
+    direccion: direccion.value.trim() || null,
   });
+
+  if (!guardadoExitoso) {
+    mostrarToastRegistro('No es posible guardar el registro localmente. Verifica que tu navegador permita el almacenamiento local.', 'error');
+    return;
+  }
 
   mostrarToastRegistro(`¡Listo, ${nombre.value.trim()}! Tu registro como ${tipoSocio.value} fue guardado.`, 'exito');
   document.getElementById('formRegistro').reset();
@@ -272,14 +337,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Validación en tiempo real mientras se escribe (RNF02)
   document.getElementById('regNombre').addEventListener('blur', function () {
-    validarCampoObligatorio(this, 'El nombre');
+    validarCampoObligatorio(this, 'El nombre', 50);
   });
   document.getElementById('regApellido').addEventListener('blur', function () {
-    validarCampoObligatorio(this, 'El apellido');
+    validarCampoObligatorio(this, 'El apellido', 100);
   });
   document.getElementById('regCorreo').addEventListener('blur', function () {
-    if (!validarCampoObligatorio(this, 'El correo')) return;
-    marcarValidez(this, this.checkValidity(), 'Ingresa un correo con formato válido.');
+    if (!validarCampoObligatorio(this, 'El correo', 100)) return;
+    if (!this.checkValidity()) {
+      marcarValidez(this, false, 'Ingresa un correo con formato válido.');
+      return;
+    }
+    if (!validarDominioCorreo(this.value.trim().toLowerCase())) {
+      marcarValidez(this, false, 'El correo debe pertenecer a @duoc.cl, @profesor.duoc.cl o @gmail.com.');
+      return;
+    }
+    marcarValidez(this, true);
   });
   document.getElementById('regRun').addEventListener('blur', function () {
     const valor = this.value.trim().toUpperCase();

@@ -8,8 +8,70 @@
 
 const CLAVE_RADIOESCUCHAS_ADMIN = 'jugoseoRadioescuchas';
 
+// ---------------------------------------------------------
+// RF05: Tipos de usuario implementados
+// Nota: El sistema utiliza "Socio VIP" y "Radioescucha Oficial" 
+// como tipos de usuario, consistentes entre registro y admin
+// ---------------------------------------------------------
+
+// ---------------------------------------------------------
+// RF06: Datos de Región -> Comunas (subset representativo)
+// ---------------------------------------------------------
+const REGIONES_COMUNAS_ADMIN = {
+  'Región Metropolitana': ['Santiago', 'Providencia', 'Ñuñoa', 'Maipú', 'Puente Alto'],
+  'Valparaíso':            ['Valparaíso', 'Viña del Mar', 'Quilpué', 'San Antonio', 'Los Andes'],
+  "O'Higgins":             ['Rancagua', 'San Fernando', 'Rengo', 'Machalí'],
+  'Maule':                 ['Talca', 'Curicó', 'Linares', 'Constitución'],
+  'Biobío':                ['Concepción', 'Talcahuano', 'Los Ángeles', 'Chillán'],
+  'Araucanía':             ['Temuco', 'Villarrica', 'Angol', 'Pucón'],
+  'Los Lagos':             ['Puerto Montt', 'Osorno', 'Castro', 'Puerto Varas'],
+  'Antofagasta':           ['Antofagasta', 'Calama', 'Tocopilla'],
+  'Coquimbo':              ['La Serena', 'Coquimbo', 'Ovalle'],
+};
+
 let productosAdmin = [];
 let radioescuchasAdmin = [];
+
+// ---------------------------------------------------------
+// RF06: Poblar el select de Región y reaccionar a cambios (Admin)
+// ---------------------------------------------------------
+function poblarRegionesAdmin() {
+  const selectRegion = document.getElementById('radioescuchaRegion');
+  if (!selectRegion) return;
+  
+  selectRegion.innerHTML = '<option value="" selected disabled>Selecciona una región</option>';
+  Object.keys(REGIONES_COMUNAS_ADMIN).forEach(region => {
+    const opcion = document.createElement('option');
+    opcion.value = region;
+    opcion.textContent = region;
+    selectRegion.appendChild(opcion);
+  });
+}
+
+function actualizarComunasAdmin() {
+  const region = document.getElementById('radioescuchaRegion').value;
+  const selectComuna = document.getElementById('radioescuchaComuna');
+  if (!selectComuna) return;
+
+  selectComuna.innerHTML = '<option value="" selected disabled>Selecciona una comuna</option>';
+
+  if (region && REGIONES_COMUNAS_ADMIN[region]) {
+    if (REGIONES_COMUNAS_ADMIN[region].length === 0) {
+      selectComuna.disabled = true;
+      mostrarToastAdmin('No hay comunas disponibles para esta región.', 'error');
+      return;
+    }
+    selectComuna.disabled = false;
+    REGIONES_COMUNAS_ADMIN[region].forEach(comuna => {
+      const opcion = document.createElement('option');
+      opcion.value = comuna;
+      opcion.textContent = comuna;
+      selectComuna.appendChild(opcion);
+    });
+  } else {
+    selectComuna.disabled = true;
+  }
+}
 
 // ---------------------------------------------------------
 // RF09: Navegación entre secciones del panel (sin recargar)
@@ -147,7 +209,13 @@ function eliminarProducto(id) {
 // RF10: Mantenedor de Radioescuchas / Socios
 // ---------------------------------------------------------
 function guardarRadioescuchasAdmin() {
-  localStorage.setItem(CLAVE_RADIOESCUCHAS_ADMIN, JSON.stringify(radioescuchasAdmin));
+  try {
+    localStorage.setItem(CLAVE_RADIOESCUCHAS_ADMIN, JSON.stringify(radioescuchasAdmin));
+    return true;
+  } catch (error) {
+    console.error('Error al acceder a localStorage:', error);
+    return false;
+  }
 }
 
 function renderizarTablaRadioescuchas() {
@@ -179,6 +247,9 @@ function abrirFormularioRadioescucha(indice = null) {
   const form = document.getElementById('formRadioescucha');
   form.reset();
   document.getElementById('radioescuchaIndiceEditando').value = '';
+  
+  poblarRegionesAdmin();
+  document.getElementById('radioescuchaComuna').disabled = true;
 
   if (indice !== null) {
     const persona = radioescuchasAdmin[indice];
@@ -189,9 +260,14 @@ function abrirFormularioRadioescucha(indice = null) {
     document.getElementById('radioescuchaCorreo').value = persona.correo;
     document.getElementById('radioescuchaRun').value = persona.run;
     document.getElementById('radioescuchaRegion').value = persona.region;
-    document.getElementById('radioescuchaComuna').value = persona.comuna;
     document.getElementById('radioescuchaTipo').value = persona.tipo;
+    document.getElementById('radioescuchaFechaNacimiento').value = persona.fechaNacimiento || '';
+    document.getElementById('radioescuchaDireccion').value = persona.direccion || '';
     document.getElementById('radioescuchaPassword').value = '';
+    
+    // Actualizar comunas según la región y seleccionar la comuna
+    actualizarComunasAdmin();
+    document.getElementById('radioescuchaComuna').value = persona.comuna;
   } else {
     document.getElementById('modalRadioescuchaLabel').textContent = 'Nuevo radioescucha';
   }
@@ -209,13 +285,37 @@ function guardarRadioescuchaAdmin(evento) {
     apellido: document.getElementById('radioescuchaApellido').value.trim(),
     correo: document.getElementById('radioescuchaCorreo').value.trim().toLowerCase(),
     run: document.getElementById('radioescuchaRun').value.trim().toUpperCase(),
-    region: document.getElementById('radioescuchaRegion').value.trim(),
-    comuna: document.getElementById('radioescuchaComuna').value.trim(),
+    region: document.getElementById('radioescuchaRegion').value,
+    comuna: document.getElementById('radioescuchaComuna').value,
     tipo: document.getElementById('radioescuchaTipo').value,
+    fechaNacimiento: document.getElementById('radioescuchaFechaNacimiento').value || null,
+    direccion: document.getElementById('radioescuchaDireccion').value.trim() || null,
   };
 
   if (!datos.nombre || !datos.apellido || !datos.correo || !datos.run) {
     mostrarToastAdmin('Nombre, apellido, correo y RUN son obligatorios.', 'error');
+    return;
+  }
+
+  // Validaciones de longitud máxima
+  if (datos.nombre.length > 50) {
+    mostrarToastAdmin('El nombre no puede superar 50 caracteres.', 'error');
+    return;
+  }
+  if (datos.apellido.length > 100) {
+    mostrarToastAdmin('El apellido no puede superar 100 caracteres.', 'error');
+    return;
+  }
+  if (datos.correo.length > 100) {
+    mostrarToastAdmin('El correo no puede superar 100 caracteres.', 'error');
+    return;
+  }
+  if (!validarDominioCorreoAdmin(datos.correo)) {
+    mostrarToastAdmin('El correo debe pertenecer a @duoc.cl, @profesor.duoc.cl o @gmail.com.', 'error');
+    return;
+  }
+  if (datos.direccion && datos.direccion.length > 300) {
+    mostrarToastAdmin('La dirección no puede superar 300 caracteres.', 'error');
     return;
   }
 
@@ -244,12 +344,20 @@ function guardarRadioescuchaAdmin(evento) {
       mostrarToastAdmin('Ya existe un radioescucha registrado con ese correo.', 'error');
       return;
     }
+    const runDuplicado = radioescuchasAdmin.some(r => (r.run || '').toUpperCase() === datos.run);
+    if (runDuplicado) {
+      mostrarToastAdmin('Ya existe un radioescucha registrado con ese RUN.', 'error');
+      return;
+    }
     datos.password = passwordIngresada;
     radioescuchasAdmin.push(datos);
     mostrarToastAdmin('Radioescucha creado.', 'exito');
   }
 
-  guardarRadioescuchasAdmin();
+  if (!guardarRadioescuchasAdmin()) {
+    mostrarToastAdmin('No es posible guardar los cambios localmente. Verifica que tu navegador permita el almacenamiento local.', 'error');
+    return;
+  }
   renderizarTablaRadioescuchas();
   bootstrap.Modal.getOrCreateInstance(document.getElementById('modalRadioescucha')).hide();
 }
@@ -259,6 +367,15 @@ function eliminarRadioescucha(indice) {
   guardarRadioescuchasAdmin();
   renderizarTablaRadioescuchas();
   mostrarToastAdmin('Radioescucha eliminado.', 'info');
+}
+
+// ---------------------------------------------------------
+// RF: Validación de dominios de correo autorizados
+// ---------------------------------------------------------
+function validarDominioCorreoAdmin(correo) {
+  const dominiosAutorizados = ['@duoc.cl', '@profesor.duoc.cl', '@gmail.com'];
+  const dominio = correo.substring(correo.lastIndexOf('@'));
+  return dominiosAutorizados.includes(dominio);
 }
 
 // ---------------------------------------------------------
@@ -310,6 +427,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('btnNuevoRadioescucha').addEventListener('click', () => abrirFormularioRadioescucha(null));
   document.getElementById('formRadioescucha').addEventListener('submit', guardarRadioescuchaAdmin);
+  
+  // Event listener para actualizar comunas cuando cambia la región en el modal
+  document.getElementById('radioescuchaRegion').addEventListener('change', actualizarComunasAdmin);
 
   cambiarSeccionAdmin('dashboard');
 });

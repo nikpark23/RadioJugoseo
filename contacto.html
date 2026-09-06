@@ -36,21 +36,21 @@
           <form id="formContacto" novalidate>
             <div class="mb-3">
               <label for="contactoNombre" class="form-label jugoseo-form-label">Nombre</label>
-              <input type="text" class="form-control jugoseo-input" id="contactoNombre" required>
-              <div class="invalid-feedback">El nombre es obligatorio.</div>
+              <input type="text" class="form-control jugoseo-input" id="contactoNombre" maxlength="100" required>
+              <div class="invalid-feedback">Ingrese su nombre</div>
             </div>
 
             <div class="mb-3">
               <label for="contactoCorreo" class="form-label jugoseo-form-label">Correo</label>
               <input type="email" class="form-control jugoseo-input" id="contactoCorreo"
-                     placeholder="tu@duoc.cl / tu@gmail.com" required>
-              <div class="invalid-feedback">Correo no válido o de dominio no autorizado.</div>
+                     placeholder="tu@duoc.cl / tu@gmail.com" maxlength="100" required>
+              <div class="invalid-feedback">Ingrese un correo electrónico</div>
             </div>
 
             <div class="mb-2">
               <label for="contactoMensaje" class="form-label jugoseo-form-label">Mensaje</label>
-              <textarea class="form-control jugoseo-input" id="contactoMensaje" rows="4" maxlength="600" required></textarea>
-              <div class="invalid-feedback">Revisa tu mensaje: es obligatorio y no puede superar 500 caracteres.</div>
+              <textarea class="form-control jugoseo-input" id="contactoMensaje" rows="4" maxlength="500" required></textarea>
+              <div class="invalid-feedback">Ingrese un mensaje</div>
             </div>
             <div class="d-flex justify-content-end mb-3">
               <small id="contadorMensaje" class="jugoseo-card-texto">0 / 500 caracteres</small>

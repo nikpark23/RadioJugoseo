@@ -209,14 +209,26 @@
               <input type="password" class="form-control jugoseo-input" id="radioescuchaPassword" minlength="4" maxlength="10" placeholder="Déjalo vacío para no cambiarla">
               <div id="radioescuchaPasswordAyuda" class="jugoseo-card-texto mt-1" style="font-size:0.8rem;">Obligatoria al crear una cuenta nueva.</div>
             </div>
+            <div class="mb-3">
+              <label for="radioescuchaFechaNacimiento" class="form-label jugoseo-form-label">Fecha de nacimiento (opcional)</label>
+              <input type="date" class="form-control jugoseo-input" id="radioescuchaFechaNacimiento">
+            </div>
+            <div class="mb-3">
+              <label for="radioescuchaDireccion" class="form-label jugoseo-form-label">Dirección (opcional)</label>
+              <input type="text" class="form-control jugoseo-input" id="radioescuchaDireccion" maxlength="300" placeholder="Calle, número, departamento (opcional)">
+            </div>
             <div class="row g-3">
               <div class="col-6">
                 <label for="radioescuchaRegion" class="form-label jugoseo-form-label">Región</label>
-                <input type="text" class="form-control jugoseo-input" id="radioescuchaRegion" required>
+                <select class="form-select jugoseo-input" id="radioescuchaRegion" required>
+                  <option value="" selected disabled>Selecciona una región</option>
+                </select>
               </div>
               <div class="col-6">
                 <label for="radioescuchaComuna" class="form-label jugoseo-form-label">Comuna</label>
-                <input type="text" class="form-control jugoseo-input" id="radioescuchaComuna" required>
+                <select class="form-select jugoseo-input" id="radioescuchaComuna" required disabled>
+                  <option value="" selected disabled>Primero elige una región</option>
+                </select>
               </div>
             </div>
             <div class="mt-3">

@@ -7,6 +7,8 @@
    ============================================================ */
 
 const MAX_CARACTERES_MENSAJE = 500;
+const MAX_CARACTERES_NOMBRE = 100;
+const MAX_CARACTERES_CORREO = 100;
 const DOMINIOS_AUTORIZADOS = ['duoc.cl', 'profesor.duoc.cl', 'gmail.com'];
 
 function marcarValidezContacto(elemento, esValido, mensajeError) {
@@ -26,21 +28,41 @@ function obtenerDominio(correo) {
   return partes.length === 2 ? partes[1].toLowerCase() : '';
 }
 
+function validarNombreContacto(elemento) {
+  const valor = elemento.value.trim();
+
+  if (!valor) {
+    marcarValidezContacto(elemento, false, 'Ingrese su nombre');
+    return false;
+  }
+  if (valor.length > MAX_CARACTERES_NOMBRE) {
+    marcarValidezContacto(elemento, false, `El nombre no puede superar ${MAX_CARACTERES_NOMBRE} caracteres`);
+    return false;
+  }
+
+  marcarValidezContacto(elemento, true);
+  return true;
+}
+
 function validarCorreoContacto(elemento) {
   const valor = elemento.value.trim();
 
   if (!valor) {
-    marcarValidezContacto(elemento, false, 'El correo es obligatorio.');
+    marcarValidezContacto(elemento, false, 'Ingrese un correo electrónico');
+    return false;
+  }
+  if (valor.length > MAX_CARACTERES_CORREO) {
+    marcarValidezContacto(elemento, false, `El correo no puede superar ${MAX_CARACTERES_CORREO} caracteres`);
     return false;
   }
   if (!elemento.checkValidity()) {
-    marcarValidezContacto(elemento, false, 'Ingresa un correo con formato válido.');
+    marcarValidezContacto(elemento, false, 'El correo no tiene un formato válido');
     return false;
   }
 
   const dominio = obtenerDominio(valor);
   if (!DOMINIOS_AUTORIZADOS.includes(dominio)) {
-    marcarValidezContacto(elemento, false, `Solo se aceptan correos ${DOMINIOS_AUTORIZADOS.map(d => '@' + d).join(', ')}.`);
+    marcarValidezContacto(elemento, false, `Solo se permiten correos @duoc.cl, @profesor.duoc.cl o @gmail.com`);
     return false;
   }
 
@@ -52,11 +74,11 @@ function validarMensajeContacto(elemento) {
   const valor = elemento.value.trim();
 
   if (!valor) {
-    marcarValidezContacto(elemento, false, 'El mensaje es obligatorio.');
+    marcarValidezContacto(elemento, false, 'Ingrese un mensaje');
     return false;
   }
   if (valor.length > MAX_CARACTERES_MENSAJE) {
-    marcarValidezContacto(elemento, false, `Tu mensaje supera el límite de ${MAX_CARACTERES_MENSAJE} caracteres.`);
+    marcarValidezContacto(elemento, false, `El mensaje no puede superar ${MAX_CARACTERES_MENSAJE} caracteres`);
     return false;
   }
 
@@ -97,10 +119,7 @@ function manejarEnvioContacto(evento) {
   const correo = document.getElementById('contactoCorreo');
   const mensaje = document.getElementById('contactoMensaje');
 
-  const nombreValido = nombre.value.trim()
-    ? (marcarValidezContacto(nombre, true), true)
-    : (marcarValidezContacto(nombre, false, 'El nombre es obligatorio.'), false);
-
+  const nombreValido = validarNombreContacto(nombre);
   const correoValido = validarCorreoContacto(correo);
   const mensajeValido = validarMensajeContacto(mensaje);
 
@@ -130,13 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
       validarMensajeContacto(mensaje);
     }
   });
-  nombre.addEventListener('blur', () => {
-    if (!nombre.value.trim()) {
-      marcarValidezContacto(nombre, false, 'El nombre es obligatorio.');
-    } else {
-      marcarValidezContacto(nombre, true);
-    }
-  });
+  nombre.addEventListener('blur', () => validarNombreContacto(nombre));
 
   actualizarContadorMensaje();
 });

@@ -7,6 +7,49 @@
    ============================================================ */
 
 const CLAVE_RADIOESCUCHAS_ADMIN = 'jugoseoRadioescuchas';
+const CLAVE_PEDIDOS_ADMIN = 'jugoseoPedidos';
+
+// ---------------------------------------------------------
+// RF09: Estados permitidos para pedidos
+// ---------------------------------------------------------
+const ESTADOS_PEDIDO = ['Pendiente', 'En preparación', 'Enviado', 'Entregado'];
+
+// ---------------------------------------------------------
+// RF09: Datos iniciales de pedidos simulados
+// ---------------------------------------------------------
+const PEDIDOS_INICIALES = [
+  {
+    id: 1,
+    cliente: 'Juan Pérez',
+    productos: [
+      { nombre: 'Polera Jugoseo Classic', cantidad: 2, precio: 19990 },
+      { nombre: 'Taza Jugoseo Classic', cantidad: 1, precio: 6990 }
+    ],
+    total: 46970,
+    fecha: '2024-01-15',
+    estado: 'Pendiente'
+  },
+  {
+    id: 2,
+    cliente: 'María García',
+    productos: [
+      { nombre: 'Vasos Jugoseo Neon', cantidad: 1, precio: 6990 }
+    ],
+    total: 6990,
+    fecha: '2024-01-14',
+    estado: 'En preparación'
+  },
+  {
+    id: 3,
+    cliente: 'Carlos López',
+    productos: [
+      { nombre: 'Entrada Jugoseo Fest', cantidad: 3, precio: 12000 }
+    ],
+    total: 36000,
+    fecha: '2024-01-13',
+    estado: 'Enviado'
+  }
+];
 
 // ---------------------------------------------------------
 // RF05: Tipos de usuario implementados
@@ -31,6 +74,29 @@ const REGIONES_COMUNAS_ADMIN = {
 
 let productosAdmin = [];
 let radioescuchasAdmin = [];
+let pedidosAdmin = [];
+
+// ---------------------------------------------------------
+// RF09: Funciones para gestión de pedidos
+// ---------------------------------------------------------
+function inicializarPedidos() {
+  if (!localStorage.getItem(CLAVE_PEDIDOS_ADMIN)) {
+    localStorage.setItem(CLAVE_PEDIDOS_ADMIN, JSON.stringify(PEDIDOS_INICIALES));
+  }
+}
+
+function obtenerPedidos() {
+  inicializarPedidos();
+  return JSON.parse(localStorage.getItem(CLAVE_PEDIDOS_ADMIN));
+}
+
+function guardarPedidos(listaPedidos) {
+  localStorage.setItem(CLAVE_PEDIDOS_ADMIN, JSON.stringify(listaPedidos));
+}
+
+function generarIdPedido(listaPedidos) {
+  return listaPedidos.length ? Math.max(...listaPedidos.map(p => p.id)) + 1 : 1;
+}
 
 // ---------------------------------------------------------
 // RF06: Poblar el select de Región y reaccionar a cambios (Admin)
@@ -77,8 +143,23 @@ function actualizarComunasAdmin() {
 // RF09: Navegación entre secciones del panel (sin recargar)
 // ---------------------------------------------------------
 function cambiarSeccionAdmin(seccion) {
+  const rol = obtenerRolUsuario();
+  
+  // RF09: Validar que el Vendedor no acceda a secciones prohibidas
+  if (rol === 'Vendedor' && seccion === 'radioescuchas') {
+    mostrarToastAdmin('No tienes permiso para acceder a esta sección.', 'error');
+    return;
+  }
+  
   document.querySelectorAll('.jugoseo-admin-seccion').forEach(el => el.classList.add('d-none'));
-  document.getElementById(`seccion-${seccion}`).classList.remove('d-none');
+  const seccionObjetivo = document.getElementById(`seccion-${seccion}`);
+  
+  if (seccionObjetivo) {
+    seccionObjetivo.classList.remove('d-none');
+  } else {
+    console.error(`Sección ${seccion} no encontrada`);
+    return;
+  }
 
   document.querySelectorAll('.jugoseo-admin-link').forEach(link => {
     link.classList.toggle('active', link.dataset.seccion === seccion);
@@ -87,21 +168,37 @@ function cambiarSeccionAdmin(seccion) {
   if (seccion === 'dashboard') renderizarDashboard();
   if (seccion === 'productos') renderizarTablaProductos();
   if (seccion === 'radioescuchas') renderizarTablaRadioescuchas();
+  if (seccion === 'pedidos') renderizarTablaPedidos();
 }
 
 // ---------------------------------------------------------
 // Dashboard: resumen rápido
 // ---------------------------------------------------------
 function renderizarDashboard() {
+  const rol = obtenerRolUsuario();
+  
   document.getElementById('statProductos').textContent = productosAdmin.length;
   document.getElementById('statStockBajo').textContent = productosAdmin.filter(p => p.stock <= 5).length;
-  document.getElementById('statRadioescuchas').textContent = radioescuchasAdmin.length;
+  document.getElementById('statPedidos').textContent = pedidosAdmin.length;
 
-  const conteoTipos = radioescuchasAdmin.reduce((acc, r) => {
-    acc[r.tipo] = (acc[r.tipo] || 0) + 1;
-    return acc;
-  }, {});
-  document.getElementById('statSociosVip').textContent = conteoTipos['Socio VIP'] || 0;
+  // RF09: Vendedor no ve estadísticas de radioescuchas
+  if (rol === 'Administrador') {
+    document.getElementById('statRadioescuchas').textContent = radioescuchasAdmin.length;
+    
+    const conteoTipos = radioescuchasAdmin.reduce((acc, r) => {
+      acc[r.tipo] = (acc[r.tipo] || 0) + 1;
+      return acc;
+    }, {});
+    document.getElementById('statSociosVip').textContent = conteoTipos['Socio VIP'] || 0;
+    
+    // Mostrar cards de radioescuchas
+    document.getElementById('statRadioescuchas').parentElement.parentElement.classList.remove('d-none');
+    document.getElementById('statSociosVip').parentElement.parentElement.classList.remove('d-none');
+  } else if (rol === 'Vendedor') {
+    // Ocultar cards de radioescuchas para Vendedor
+    document.getElementById('statRadioescuchas').parentElement.parentElement.classList.add('d-none');
+    document.getElementById('statSociosVip').parentElement.parentElement.classList.add('d-none');
+  }
 }
 
 // ---------------------------------------------------------
@@ -110,6 +207,7 @@ function renderizarDashboard() {
 function renderizarTablaProductos() {
   const cuerpo = document.getElementById('cuerpoTablaProductos');
   cuerpo.innerHTML = '';
+  const rol = obtenerRolUsuario();
 
   if (productosAdmin.length === 0) {
     cuerpo.innerHTML = '<tr><td colspan="6" class="text-center jugoseo-card-texto py-3">Sin productos aún.</td></tr>';
@@ -118,36 +216,88 @@ function renderizarTablaProductos() {
 
   productosAdmin.forEach(producto => {
     const fila = document.createElement('tr');
+    
+    // RF09: Controles diferenciados por rol
+    let accionesHtml = '';
+    if (rol === 'Administrador') {
+      accionesHtml = `
+        <button class="btn btn-sm btn-outline-light me-1" onclick="abrirFormularioProducto(${producto.id})">Editar</button>
+        <button class="btn btn-sm btn-outline-danger" onclick="eliminarProducto(${producto.id})">Eliminar</button>
+      `;
+    } else if (rol === 'Vendedor') {
+      // Vendedor solo puede editar stock
+      accionesHtml = `
+        <button class="btn btn-sm btn-outline-light" onclick="abrirFormularioStock(${producto.id})">Editar Stock</button>
+      `;
+    }
+
     fila.innerHTML = `
       <td><img src="${producto.imagen || IMAGEN_PRODUCTO_GENERICA}" alt="${producto.nombre}" style="width:42px;height:42px;object-fit:cover;border-radius:6px;" class="me-2"></td>
       <td>${producto.nombre}</td>
       <td>${producto.categoria}</td>
       <td>$${producto.precio.toLocaleString('es-CL')}</td>
       <td>${producto.stock}</td>
-      <td class="text-end">
-        <button class="btn btn-sm btn-outline-light me-1" onclick="abrirFormularioProducto(${producto.id})">Editar</button>
-        <button class="btn btn-sm btn-outline-danger" onclick="eliminarProducto(${producto.id})">Eliminar</button>
-      </td>`;
+      <td class="text-end">${accionesHtml}</td>`;
     cuerpo.appendChild(fila);
   });
+
+  // RF09: Ocultar botón "Nuevo producto" para Vendedor
+  const btnNuevoProducto = document.getElementById('btnNuevoProducto');
+  if (btnNuevoProducto) {
+    btnNuevoProducto.classList.toggle('d-none', rol === 'Vendedor');
+  }
 }
 
 function abrirFormularioProducto(id = null) {
   const form = document.getElementById('formProducto');
   form.reset();
   document.getElementById('productoIdEditando').value = '';
+  const rol = obtenerRolUsuario();
+
+  // RF09: Vendedor no puede crear productos, solo editar stock
+  if (rol === 'Vendedor' && id === null) {
+    mostrarToastAdmin('Solo el Administrador puede crear nuevos productos.', 'error');
+    return;
+  }
 
   if (id !== null) {
     const producto = productosAdmin.find(p => p.id === id);
-    document.getElementById('modalProductoLabel').textContent = 'Editar producto';
-    document.getElementById('productoIdEditando').value = producto.id;
-    document.getElementById('productoNombre').value = producto.nombre;
-    document.getElementById('productoCategoria').value = producto.categoria;
-    document.getElementById('productoPrecio').value = producto.precio;
-    document.getElementById('productoStock').value = producto.stock;
-    document.getElementById('productoImagen').value = producto.imagen || '';
+    
+    if (rol === 'Vendedor') {
+      // Vendedor solo edita stock
+      document.getElementById('modalProductoLabel').textContent = 'Editar Stock';
+      document.getElementById('productoIdEditando').value = producto.id;
+      document.getElementById('productoStock').value = producto.stock;
+      
+      // Deshabilitar otros campos para Vendedor
+      document.getElementById('productoNombre').disabled = true;
+      document.getElementById('productoCategoria').disabled = true;
+      document.getElementById('productoPrecio').disabled = true;
+      document.getElementById('productoImagen').disabled = true;
+    } else {
+      // Administrador edita todo
+      document.getElementById('modalProductoLabel').textContent = 'Editar producto';
+      document.getElementById('productoIdEditando').value = producto.id;
+      document.getElementById('productoNombre').value = producto.nombre;
+      document.getElementById('productoCategoria').value = producto.categoria;
+      document.getElementById('productoPrecio').value = producto.precio;
+      document.getElementById('productoStock').value = producto.stock;
+      document.getElementById('productoImagen').value = producto.imagen || '';
+      
+      // Habilitar todos los campos
+      document.getElementById('productoNombre').disabled = false;
+      document.getElementById('productoCategoria').disabled = false;
+      document.getElementById('productoPrecio').disabled = false;
+      document.getElementById('productoImagen').disabled = false;
+    }
   } else {
     document.getElementById('modalProductoLabel').textContent = 'Nuevo producto';
+    
+    // Habilitar todos los campos para nuevo producto
+    document.getElementById('productoNombre').disabled = false;
+    document.getElementById('productoCategoria').disabled = false;
+    document.getElementById('productoPrecio').disabled = false;
+    document.getElementById('productoImagen').disabled = false;
   }
 
   bootstrap.Modal.getOrCreateInstance(document.getElementById('modalProducto')).show();
@@ -157,11 +307,36 @@ function guardarProductoAdmin(evento) {
   evento.preventDefault();
 
   const idEditando = document.getElementById('productoIdEditando').value;
+  const rol = obtenerRolUsuario();
+  
   const nombre = document.getElementById('productoNombre').value.trim();
   const categoria = document.getElementById('productoCategoria').value.trim();
   const precio = parseInt(document.getElementById('productoPrecio').value, 10);
   const stock = parseInt(document.getElementById('productoStock').value, 10);
   const imagen = document.getElementById('productoImagen').value.trim();
+
+  // RF09: Vendedor solo puede editar stock
+  if (rol === 'Vendedor') {
+    if (!idEditando) {
+      mostrarToastAdmin('Solo el Administrador puede crear productos.', 'error');
+      return;
+    }
+    
+    if (isNaN(stock) || stock < 0) {
+      mostrarToastAdmin('El stock debe ser un número mayor o igual a 0.', 'error');
+      return;
+    }
+
+    const producto = productosAdmin.find(p => p.id === parseInt(idEditando, 10));
+    if (producto) {
+      producto.stock = stock;
+      guardarProductos(productosAdmin);
+      renderizarTablaProductos();
+      mostrarToastAdmin('Stock actualizado.', 'exito');
+    }
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalProducto')).hide();
+    return;
+  }
 
   // RF02: Validación de longitud del nombre (máximo 100 caracteres)
   if (nombre.length > 100) {
@@ -203,6 +378,30 @@ function eliminarProducto(id) {
   guardarProductos(productosAdmin);
   renderizarTablaProductos();
   mostrarToastAdmin('Producto eliminado.', 'info');
+}
+
+// ---------------------------------------------------------
+// RF09: Edición de stock para Vendedor
+// ---------------------------------------------------------
+function abrirFormularioStock(id) {
+  const producto = productosAdmin.find(p => p.id === id);
+  if (!producto) return;
+
+  const nuevoStock = prompt(`Ingrese el nuevo stock para "${producto.nombre}":`, producto.stock);
+  
+  if (nuevoStock === null) return; // Usuario canceló
+  
+  const stockNumerico = parseInt(nuevoStock, 10);
+  
+  if (isNaN(stockNumerico) || stockNumerico < 0) {
+    mostrarToastAdmin('El stock debe ser un número mayor o igual a 0.', 'error');
+    return;
+  }
+
+  producto.stock = stockNumerico;
+  guardarProductos(productosAdmin);
+  renderizarTablaProductos();
+  mostrarToastAdmin(`Stock de "${producto.nombre}" actualizado a ${stockNumerico}.`, 'exito');
 }
 
 // ---------------------------------------------------------
@@ -370,6 +569,72 @@ function eliminarRadioescucha(indice) {
 }
 
 // ---------------------------------------------------------
+// RF09: Mantenedor de Pedidos
+// ---------------------------------------------------------
+function formatearProductosPedido(productos) {
+  return productos.map(p => `${p.cantidad}x ${p.nombre}`).join(', ');
+}
+
+function renderizarTablaPedidos() {
+  const cuerpo = document.getElementById('cuerpoTablaPedidos');
+  cuerpo.innerHTML = '';
+  const rol = obtenerRolUsuario();
+
+  if (pedidosAdmin.length === 0) {
+    cuerpo.innerHTML = '<tr><td colspan="7" class="text-center jugoseo-card-texto py-3">Aún no hay pedidos registrados.</td></tr>';
+    return;
+  }
+
+  pedidosAdmin.forEach(pedido => {
+    const fila = document.createElement('tr');
+    
+    // RF09: Solo Vendedor puede cambiar estado de pedidos
+    let accionesHtml = '';
+    if (rol === 'Vendedor') {
+      accionesHtml = `
+        <select class="form-select form-select-sm jugoseo-input" style="width: auto;" onchange="cambiarEstadoPedido(${pedido.id}, this.value)">
+          ${ESTADOS_PEDIDO.map(estado => 
+            `<option value="${estado}" ${pedido.estado === estado ? 'selected' : ''}>${estado}</option>`
+          ).join('')}
+        </select>
+      `;
+    } else if (rol === 'Administrador') {
+      // Administrador solo ve el estado, no puede cambiarlo
+      accionesHtml = '<span class="text-muted">Solo lectura</span>';
+    }
+
+    fila.innerHTML = `
+      <td>${pedido.id}</td>
+      <td>${pedido.cliente}</td>
+      <td><small>${formatearProductosPedido(pedido.productos)}</small></td>
+      <td>$${pedido.total.toLocaleString('es-CL')}</td>
+      <td>${pedido.fecha}</td>
+      <td><span class="badge jugoseo-badge">${pedido.estado}</span></td>
+      <td class="text-end">${accionesHtml}</td>`;
+    cuerpo.appendChild(fila);
+  });
+}
+
+function cambiarEstadoPedido(idPedido, nuevoEstado) {
+  // RF09: Validar que el estado sea permitido
+  if (!ESTADOS_PEDIDO.includes(nuevoEstado)) {
+    mostrarToastAdmin('Estado no permitido.', 'error');
+    renderizarTablaPedidos();
+    return;
+  }
+
+  const pedido = pedidosAdmin.find(p => p.id === idPedido);
+  if (!pedido) {
+    mostrarToastAdmin('Pedido no encontrado.', 'error');
+    return;
+  }
+
+  pedido.estado = nuevoEstado;
+  guardarPedidos(pedidosAdmin);
+  mostrarToastAdmin(`Estado del pedido #${idPedido} actualizado a "${nuevoEstado}".`, 'exito');
+}
+
+// ---------------------------------------------------------
 // RF: Validación de dominios de correo autorizados
 // ---------------------------------------------------------
 function validarDominioCorreoAdmin(correo) {
@@ -409,11 +674,86 @@ function mostrarToastAdmin(mensaje, tipo = 'exito') {
 }
 
 // ---------------------------------------------------------
+// RF09: Obtener rol del usuario actual
+// ---------------------------------------------------------
+function obtenerRolUsuario() {
+  const sesion = JSON.parse(sessionStorage.getItem('jugoseoUsuario') || 'null');
+  return sesion ? sesion.rol : null;
+}
+
+// ---------------------------------------------------------
+// RF09: Configurar menú según rol
+// ---------------------------------------------------------
+function configurarMenuPorRol() {
+  const rol = obtenerRolUsuario();
+  const linkDashboard = document.getElementById('linkDashboard');
+  const linkProductos = document.getElementById('linkProductos');
+  const linkPedidos = document.getElementById('linkPedidos');
+  const linkRadioescuchas = document.getElementById('linkRadioescuchas');
+  const tituloPanel = document.getElementById('tituloPanel');
+  const seccionRadioescuchas = document.getElementById('seccion-radioescuchas');
+  const btnNuevoRadioescucha = document.getElementById('btnNuevoRadioescucha');
+  
+  if (rol === 'Vendedor') {
+    // Panel exclusivo para Vendedor
+    if (tituloPanel) {
+      tituloPanel.textContent = 'Panel de Ventas';
+    }
+    
+    // Mostrar solo las opciones del Vendedor
+    if (linkDashboard) linkDashboard.classList.remove('d-none');
+    if (linkProductos) linkProductos.classList.remove('d-none');
+    if (linkPedidos) linkPedidos.classList.remove('d-none');
+    
+    // Ocultar Radioescuchas para Vendedor
+    if (linkRadioescuchas) linkRadioescuchas.classList.add('d-none');
+    
+    // RF09: Vendedor no puede acceder a sección de radioescuchas
+    if (seccionRadioescuchas) seccionRadioescuchas.classList.add('d-none');
+    if (btnNuevoRadioescucha) btnNuevoRadioescucha.classList.add('d-none');
+    
+    // Asegurar que el panel principal sea visible
+    const panelLayout = document.querySelector('.jugoseo-admin-layout');
+    if (panelLayout) panelLayout.classList.remove('d-none');
+    
+    // Forzar que se muestre el dashboard del Vendedor
+    cambiarSeccionAdmin('dashboard');
+    
+  } else if (rol === 'Administrador') {
+    // Panel exclusivo para Administrador
+    if (tituloPanel) {
+      tituloPanel.textContent = 'Panel Administrativo';
+    }
+    
+    // Mostrar todas las opciones del Administrador
+    if (linkDashboard) linkDashboard.classList.remove('d-none');
+    if (linkProductos) linkProductos.classList.remove('d-none');
+    if (linkPedidos) linkPedidos.classList.remove('d-none');
+    if (linkRadioescuchas) linkRadioescuchas.classList.remove('d-none');
+    
+    // Mostrar sección de radioescuchas
+    if (seccionRadioescuchas) seccionRadioescuchas.classList.remove('d-none');
+    if (btnNuevoRadioescucha) btnNuevoRadioescucha.classList.remove('d-none');
+    
+    // Asegurar que el panel principal sea visible
+    const panelLayout = document.querySelector('.jugoseo-admin-layout');
+    if (panelLayout) panelLayout.classList.remove('d-none');
+    
+    // Forzar que se muestre el dashboard del Administrador
+    cambiarSeccionAdmin('dashboard');
+  }
+}
+
+// ---------------------------------------------------------
 // Inicio
 // ---------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
   productosAdmin = obtenerProductos();
   radioescuchasAdmin = JSON.parse(localStorage.getItem(CLAVE_RADIOESCUCHAS_ADMIN)) || [];
+  pedidosAdmin = obtenerPedidos();
+
+  // RF09: Configurar menú según rol
+  configurarMenuPorRol();
 
   document.querySelectorAll('.jugoseo-admin-link').forEach(link => {
     link.addEventListener('click', e => {

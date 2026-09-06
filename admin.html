@@ -12,12 +12,12 @@
 
   <script>
     // ---------------------------------------------------------
-    // RF11 - Control de acceso por rol: solo Administrador
+    // RF09 - Control de acceso por rol: Administrador y Vendedor
     // ---------------------------------------------------------
     const sesionAdminGuard = JSON.parse(sessionStorage.getItem('jugoseoUsuario') || 'null');
     if (!sesionAdminGuard) {
       window.location.replace('index.html');
-    } else if (sesionAdminGuard.rol !== 'Administrador') {
+    } else if (sesionAdminGuard.rol !== 'Administrador' && sesionAdminGuard.rol !== 'Vendedor') {
       window.location.replace('app.html');
     }
   </script>
@@ -31,12 +31,13 @@
       <div class="jugoseo-brand jugoseo-admin-brand">
         JUGOSEO<span class="jugoseo-brand-dot">.com</span>
       </div>
-      <p class="jugoseo-admin-subtitulo">Panel Administrativo</p>
+      <p class="jugoseo-admin-subtitulo" id="tituloPanel">Panel Administrativo</p>
 
       <nav class="nav flex-column mt-3">
-        <a href="#" class="nav-link jugoseo-admin-link active" data-seccion="dashboard">📊 Dashboard</a>
-        <a href="#" class="nav-link jugoseo-admin-link" data-seccion="productos">🛍️ Productos</a>
-        <a href="#" class="nav-link jugoseo-admin-link" data-seccion="radioescuchas">🎧 Radioescuchas</a>
+        <a href="#" class="nav-link jugoseo-admin-link active" data-seccion="dashboard" id="linkDashboard">📊 Dashboard</a>
+        <a href="#" class="nav-link jugoseo-admin-link" data-seccion="productos" id="linkProductos">🛍️ Productos</a>
+        <a href="#" class="nav-link jugoseo-admin-link" data-seccion="pedidos" id="linkPedidos">📦 Pedidos</a>
+        <a href="#" class="nav-link jugoseo-admin-link" data-seccion="radioescuchas" id="linkRadioescuchas">🎧 Radioescuchas</a>
       </nav>
 
       <div class="mt-auto pt-4">
@@ -52,28 +53,34 @@
       <section id="seccion-dashboard" class="jugoseo-admin-seccion">
         <h1 class="pagina-titulo h3 mb-4">Dashboard</h1>
         <div class="row g-3">
-          <div class="col-sm-6 col-lg-3">
+          <div class="col-sm-6 col-lg-4 col-xl-2">
             <div class="jugoseo-card text-center">
               <div class="jugoseo-admin-stat" id="statProductos">0</div>
               <div class="jugoseo-card-texto">Productos en catálogo</div>
             </div>
           </div>
-          <div class="col-sm-6 col-lg-3">
+          <div class="col-sm-6 col-lg-4 col-xl-2">
             <div class="jugoseo-card text-center">
               <div class="jugoseo-admin-stat" id="statStockBajo">0</div>
               <div class="jugoseo-card-texto">Con stock bajo (≤5)</div>
             </div>
           </div>
-          <div class="col-sm-6 col-lg-3">
+          <div class="col-sm-6 col-lg-4 col-xl-2">
             <div class="jugoseo-card text-center">
               <div class="jugoseo-admin-stat" id="statRadioescuchas">0</div>
               <div class="jugoseo-card-texto">Radioescuchas registrados</div>
             </div>
           </div>
-          <div class="col-sm-6 col-lg-3">
+          <div class="col-sm-6 col-lg-4 col-xl-2">
             <div class="jugoseo-card text-center">
               <div class="jugoseo-admin-stat" id="statSociosVip">0</div>
               <div class="jugoseo-card-texto">Socios VIP</div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-lg-4 col-xl-2">
+            <div class="jugoseo-card text-center">
+              <div class="jugoseo-admin-stat" id="statPedidos">0</div>
+              <div class="jugoseo-card-texto">Pedidos</div>
             </div>
           </div>
         </div>
@@ -123,6 +130,30 @@
               </tr>
             </thead>
             <tbody id="cuerpoTablaRadioescuchas"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Mantenedor de Pedidos -->
+      <section id="seccion-pedidos" class="jugoseo-admin-seccion d-none">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h1 class="pagina-titulo h3 mb-0">Pedidos</h1>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table jugoseo-tabla-programas align-middle">
+            <thead>
+              <tr>
+                <th>N°</th>
+                <th>Cliente</th>
+                <th>Productos</th>
+                <th>Total</th>
+                <th>Fecha</th>
+                <th>Estado</th>
+                <th class="text-end">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="cuerpoTablaPedidos"></tbody>
           </table>
         </div>
       </section>

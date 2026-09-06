@@ -62,6 +62,9 @@
           <li class="nav-item d-none" id="navPanelAdmin">
             <a class="nav-link" href="admin.html">Panel Admin</a>
           </li>
+          <li class="nav-item d-none" id="navPanelVentas">
+            <a class="nav-link" href="admin.html">Panel Ventas</a>
+          </li>
         </ul>
 
         <div class="d-flex align-items-center gap-3">
@@ -131,6 +134,8 @@
       document.getElementById('saludoUsuario').textContent = `Hola, ${sesion.usuario}`;
       if (sesion.rol === 'Administrador') {
         document.getElementById('navPanelAdmin').classList.remove('d-none');
+      } else if (sesion.rol === 'Vendedor') {
+        document.getElementById('navPanelVentas').classList.remove('d-none');
       }
     }
     document.getElementById('btnCerrarSesion').addEventListener('click', () => {

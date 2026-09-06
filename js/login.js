@@ -12,28 +12,31 @@ const CLAVE_RADIOESCUCHAS = 'jugoseoRadioescuchas';
 // Dominios autorizados según RF07
 const DOMINIOS_AUTORIZADOS = ['@duoc.cl', '@profesor.duoc.cl', '@gmail.com'];
 
-// Usuarios de demostración según RF07
+// Usuarios de demostración según RF07 y RF05 (tipos de usuario)
 const USUARIOS_DEMOSTRACION = [
   {
     correo: 'cliente@duoc.cl',
     password: 'client123',
     nombre: 'Juan',
     apellido: 'Pérez',
-    rol: 'Cliente'
+    rol: 'Cliente',
+    tipo: 'Socio VIP'
   },
   {
     correo: 'vendedor@profesor.duoc.cl',
     password: 'vendedor1',
     nombre: 'María',
     apellido: 'García',
-    rol: 'Vendedor'
+    rol: 'Vendedor',
+    tipo: null
   },
   {
     correo: 'admin@jugoseo.com',
     password: 'admin123',
     nombre: 'Administrador',
     apellido: 'Sistema',
-    rol: 'Administrador'
+    rol: 'Administrador',
+    tipo: null
   }
 ];
 
@@ -99,7 +102,8 @@ function buscarCuenta(correo, password) {
       encontrada: true,
       rol: usuarioDemo.rol,
       nombre: `${usuarioDemo.nombre} ${usuarioDemo.apellido}`.trim(),
-      correo: correoLimpio
+      correo: correoLimpio,
+      tipo: usuarioDemo.tipo || null,
     };
   }
 
@@ -116,7 +120,7 @@ function buscarCuenta(correo, password) {
 
   return {
     encontrada: true,
-    rol: 'Cliente',
+    rol: cuenta.rol || 'Cliente',
     nombre: `${cuenta.nombre} ${cuenta.apellido}`.trim(),
     correo: correoLimpio,
     tipo: cuenta.tipo,

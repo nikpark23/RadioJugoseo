@@ -290,9 +290,11 @@ function manejarEnvioRegistro(evento) {
     region: region.value,
     comuna: comuna.value,
     tipo: tipoSocio.value,
+    rol: 'Cliente',
     password: password.value,
     fechaNacimiento: fechaNacimiento.value || null,
     direccion: direccion.value.trim() || null,
+    fechaCreacion: new Date().toISOString(),
   });
 
   if (!guardadoExitoso) {

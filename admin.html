@@ -38,6 +38,7 @@
         <a href="#" class="nav-link jugoseo-admin-link" data-seccion="productos" id="linkProductos">🛍️ Productos</a>
         <a href="#" class="nav-link jugoseo-admin-link" data-seccion="pedidos" id="linkPedidos">📦 Pedidos</a>
         <a href="#" class="nav-link jugoseo-admin-link" data-seccion="radioescuchas" id="linkRadioescuchas">🎧 Radioescuchas</a>
+        <a href="#" class="nav-link jugoseo-admin-link" data-seccion="gestion-usuarios" id="linkGestionUsuarios">👥 Gestión de usuarios</a>
       </nav>
 
       <div class="mt-auto pt-4">
@@ -98,6 +99,7 @@
             <thead>
               <tr>
                 <th>Imagen</th>
+                <th>Código</th>
                 <th>Nombre</th>
                 <th>Categoría</th>
                 <th>Precio</th>
@@ -158,6 +160,28 @@
         </div>
       </section>
 
+      <!-- Gestión de Usuarios -->
+      <section id="seccion-gestion-usuarios" class="jugoseo-admin-seccion d-none">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h1 class="pagina-titulo h3 mb-0">Gestión de usuarios</h1>
+        </div>
+
+        <div class="table-responsive" style="min-height: 400px;">
+          <table class="table jugoseo-tabla-programas align-middle">
+            <thead>
+              <tr>
+                <th>RUN</th>
+                <th>Nombre</th>
+                <th>Correo</th>
+                <th>Rol</th>
+                <th>Fecha de creación</th>
+              </tr>
+            </thead>
+            <tbody id="cuerpoTablaUsuarios"></tbody>
+          </table>
+        </div>
+      </section>
+
     </main>
   </div>
 
@@ -173,8 +197,16 @@
           <form id="formProducto">
             <input type="hidden" id="productoIdEditando">
             <div class="mb-3">
+              <label for="productoCodigo" class="form-label jugoseo-form-label">Código</label>
+              <input type="text" class="form-control jugoseo-input" id="productoCodigo" required minlength="3" placeholder="Mínimo 3 caracteres">
+            </div>
+            <div class="mb-3">
               <label for="productoNombre" class="form-label jugoseo-form-label">Nombre</label>
-              <input type="text" class="form-control jugoseo-input" id="productoNombre" required>
+              <input type="text" class="form-control jugoseo-input" id="productoNombre" required maxlength="100">
+            </div>
+            <div class="mb-3">
+              <label for="productoDescripcion" class="form-label jugoseo-form-label">Descripción (opcional)</label>
+              <textarea class="form-control jugoseo-input" id="productoDescripcion" rows="2" maxlength="500" placeholder="Máximo 500 caracteres"></textarea>
             </div>
             <div class="mb-3">
               <label for="productoCategoria" class="form-label jugoseo-form-label">Categoría</label>

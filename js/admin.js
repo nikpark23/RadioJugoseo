@@ -57,6 +57,7 @@ const PEDIDOS_INICIALES = [
 // como tipos de usuario, consistentes entre registro y admin
 // ---------------------------------------------------------
 
+//Agregar inicio de sesion de los usuarios de arriba (Maria garcia como vendedor y juan perez como cliente) con sus respectivos correos y contraseñas. Si ya existen en la pagina, que solamente los remplaces.
 // ---------------------------------------------------------
 // RF06: Datos de Región -> Comunas (subset representativo)
 // ---------------------------------------------------------
@@ -146,7 +147,7 @@ function cambiarSeccionAdmin(seccion) {
   const rol = obtenerRolUsuario();
   
   // RF09: Validar que el Vendedor no acceda a secciones prohibidas
-  if (rol === 'Vendedor' && seccion === 'radioescuchas') {
+  if (rol === 'Vendedor' && (seccion === 'radioescuchas' || seccion === 'gestion-usuarios')) {
     mostrarToastAdmin('No tienes permiso para acceder a esta sección.', 'error');
     return;
   }
@@ -169,6 +170,7 @@ function cambiarSeccionAdmin(seccion) {
   if (seccion === 'productos') renderizarTablaProductos();
   if (seccion === 'radioescuchas') renderizarTablaRadioescuchas();
   if (seccion === 'pedidos') renderizarTablaPedidos();
+  if (seccion === 'gestion-usuarios') renderizarTablaUsuarios();
 }
 
 // ---------------------------------------------------------
@@ -210,7 +212,7 @@ function renderizarTablaProductos() {
   const rol = obtenerRolUsuario();
 
   if (productosAdmin.length === 0) {
-    cuerpo.innerHTML = '<tr><td colspan="6" class="text-center jugoseo-card-texto py-3">Sin productos aún.</td></tr>';
+    cuerpo.innerHTML = '<tr><td colspan="7" class="text-center jugoseo-card-texto py-3">Sin productos aún.</td></tr>';
     return;
   }
 
@@ -231,12 +233,19 @@ function renderizarTablaProductos() {
       `;
     }
 
+    // RF10: Indicador visual de stock crítico (≤5 productos)
+    const stockCritico = producto.stock <= 5;
+    const stockHtml = stockCritico 
+      ? `<span class="badge bg-danger jugoseo-badge">${producto.stock} ⚠️</span>`
+      : `${producto.stock}`;
+
     fila.innerHTML = `
       <td><img src="${producto.imagen || IMAGEN_PRODUCTO_GENERICA}" alt="${producto.nombre}" style="width:42px;height:42px;object-fit:cover;border-radius:6px;" class="me-2"></td>
+      <td>${producto.codigo}</td>
       <td>${producto.nombre}</td>
       <td>${producto.categoria}</td>
       <td>$${producto.precio.toLocaleString('es-CL')}</td>
-      <td>${producto.stock}</td>
+      <td>${stockHtml}</td>
       <td class="text-end">${accionesHtml}</td>`;
     cuerpo.appendChild(fila);
   });
@@ -270,7 +279,9 @@ function abrirFormularioProducto(id = null) {
       document.getElementById('productoStock').value = producto.stock;
       
       // Deshabilitar otros campos para Vendedor
+      document.getElementById('productoCodigo').disabled = true;
       document.getElementById('productoNombre').disabled = true;
+      document.getElementById('productoDescripcion').disabled = true;
       document.getElementById('productoCategoria').disabled = true;
       document.getElementById('productoPrecio').disabled = true;
       document.getElementById('productoImagen').disabled = true;
@@ -278,14 +289,18 @@ function abrirFormularioProducto(id = null) {
       // Administrador edita todo
       document.getElementById('modalProductoLabel').textContent = 'Editar producto';
       document.getElementById('productoIdEditando').value = producto.id;
+      document.getElementById('productoCodigo').value = producto.codigo;
       document.getElementById('productoNombre').value = producto.nombre;
+      document.getElementById('productoDescripcion').value = producto.descripcion || '';
       document.getElementById('productoCategoria').value = producto.categoria;
       document.getElementById('productoPrecio').value = producto.precio;
       document.getElementById('productoStock').value = producto.stock;
       document.getElementById('productoImagen').value = producto.imagen || '';
       
       // Habilitar todos los campos
+      document.getElementById('productoCodigo').disabled = false;
       document.getElementById('productoNombre').disabled = false;
+      document.getElementById('productoDescripcion').disabled = false;
       document.getElementById('productoCategoria').disabled = false;
       document.getElementById('productoPrecio').disabled = false;
       document.getElementById('productoImagen').disabled = false;
@@ -294,7 +309,9 @@ function abrirFormularioProducto(id = null) {
     document.getElementById('modalProductoLabel').textContent = 'Nuevo producto';
     
     // Habilitar todos los campos para nuevo producto
+    document.getElementById('productoCodigo').disabled = false;
     document.getElementById('productoNombre').disabled = false;
+    document.getElementById('productoDescripcion').disabled = false;
     document.getElementById('productoCategoria').disabled = false;
     document.getElementById('productoPrecio').disabled = false;
     document.getElementById('productoImagen').disabled = false;
@@ -309,7 +326,9 @@ function guardarProductoAdmin(evento) {
   const idEditando = document.getElementById('productoIdEditando').value;
   const rol = obtenerRolUsuario();
   
+  const codigo = document.getElementById('productoCodigo').value.trim();
   const nombre = document.getElementById('productoNombre').value.trim();
+  const descripcion = document.getElementById('productoDescripcion').value.trim();
   const categoria = document.getElementById('productoCategoria').value.trim();
   const precio = parseInt(document.getElementById('productoPrecio').value, 10);
   const stock = parseInt(document.getElementById('productoStock').value, 10);
@@ -338,9 +357,30 @@ function guardarProductoAdmin(evento) {
     return;
   }
 
+  // RF10: Validación de código (mínimo 3 caracteres)
+  if (!codigo || codigo.length < 3) {
+    mostrarToastAdmin('El código debe tener al menos 3 caracteres.', 'error');
+    return;
+  }
+
+  // RF10: Validación de código único
+  const codigoDuplicado = productosAdmin.some(p => 
+    p.codigo === codigo && p.id !== parseInt(idEditando || '0', 10)
+  );
+  if (codigoDuplicado) {
+    mostrarToastAdmin('Ya existe un producto con ese código.', 'error');
+    return;
+  }
+
   // RF02: Validación de longitud del nombre (máximo 100 caracteres)
   if (nombre.length > 100) {
     mostrarToastAdmin('El nombre del producto no puede superar los 100 caracteres.', 'error');
+    return;
+  }
+
+  // RF10: Validación de longitud de descripción (máximo 500 caracteres)
+  if (descripcion.length > 500) {
+    mostrarToastAdmin('La descripción no puede superar los 500 caracteres.', 'error');
     return;
   }
 
@@ -357,14 +397,16 @@ function guardarProductoAdmin(evento) {
 
   if (idEditando) {
     const producto = productosAdmin.find(p => p.id === parseInt(idEditando, 10));
+    producto.codigo = codigo;
     producto.nombre = nombre;
+    producto.descripcion = descripcion;
     producto.categoria = categoria;
     producto.precio = precio;
     producto.stock = stock;
     producto.imagen = imagen;
     mostrarToastAdmin('Producto actualizado.', 'exito');
   } else {
-    productosAdmin.push({ id: generarIdProducto(productosAdmin), nombre, categoria, precio, stock, imagen });
+    productosAdmin.push({ id: generarIdProducto(productosAdmin), codigo, nombre, descripcion, categoria, precio, stock, imagen });
     mostrarToastAdmin('Producto creado. Ya está disponible en la Tienda.', 'exito');
   }
 
@@ -487,6 +529,7 @@ function guardarRadioescuchaAdmin(evento) {
     region: document.getElementById('radioescuchaRegion').value,
     comuna: document.getElementById('radioescuchaComuna').value,
     tipo: document.getElementById('radioescuchaTipo').value,
+    rol: 'Cliente',
     fechaNacimiento: document.getElementById('radioescuchaFechaNacimiento').value || null,
     direccion: document.getElementById('radioescuchaDireccion').value.trim() || null,
   };
@@ -530,6 +573,8 @@ function guardarRadioescuchaAdmin(evento) {
       mostrarToastAdmin('Esta cuenta aún no tiene contraseña; ingresa una para que pueda iniciar sesión.', 'error');
       return;
     }
+    // Mantener fechaCreación original
+    datos.fechaCreacion = radioescuchasAdmin[parseInt(indiceEditando, 10)].fechaCreacion;
     radioescuchasAdmin[parseInt(indiceEditando, 10)] = datos;
     mostrarToastAdmin('Radioescucha actualizado.', 'exito');
   } else {
@@ -549,6 +594,7 @@ function guardarRadioescuchaAdmin(evento) {
       return;
     }
     datos.password = passwordIngresada;
+    datos.fechaCreacion = new Date().toISOString();
     radioescuchasAdmin.push(datos);
     mostrarToastAdmin('Radioescucha creado.', 'exito');
   }
@@ -566,6 +612,88 @@ function eliminarRadioescucha(indice) {
   guardarRadioescuchasAdmin();
   renderizarTablaRadioescuchas();
   mostrarToastAdmin('Radioescucha eliminado.', 'info');
+}
+
+// ---------------------------------------------------------
+// RF10: Gestión de Usuarios
+// ---------------------------------------------------------
+const ROLES_DISPONIBLES = ['Cliente', 'Vendedor', 'Administrador'];
+
+function cambiarRolUsuario(indice, nuevoRol, evento) {
+  if (evento) {
+    evento.preventDefault();
+    evento.stopPropagation();
+  }
+
+  const usuario = radioescuchasAdmin[indice];
+  if (!usuario) return;
+
+  const rolActual = usuario.rol || 'Cliente';
+
+  if (nuevoRol === rolActual) {
+    mostrarToastAdmin('El usuario ya tiene ese rol.', 'info');
+    return;
+  }
+
+  // Confirmar cambio
+  if (!confirm(`¿Estás seguro de cambiar el rol de ${usuario.nombre} ${usuario.apellido} de "${rolActual}" a "${nuevoRol}"?`)) {
+    return;
+  }
+
+  // Guardar el nuevo rol
+  radioescuchasAdmin[indice].rol = nuevoRol;
+  guardarRadioescuchasAdmin();
+  
+  // Actualizar la tabla
+  renderizarTablaUsuarios();
+  mostrarToastAdmin(`Rol de ${usuario.nombre} ${usuario.apellido} cambiado a "${nuevoRol}".`, 'exito');
+}
+function renderizarTablaUsuarios() {
+  const cuerpo = document.getElementById('cuerpoTablaUsuarios');
+  cuerpo.innerHTML = '';
+
+  if (radioescuchasAdmin.length === 0) {
+    cuerpo.innerHTML = '<tr><td colspan="5" class="text-center jugoseo-card-texto py-3">Aún no hay usuarios registrados.</td></tr>';
+    return;
+  }
+
+  radioescuchasAdmin.forEach((usuario, indice) => {
+    const fila = document.createElement('tr');
+    
+    // Formatear fecha de creación
+    let fechaFormateada = 'No disponible';
+    if (usuario.fechaCreacion) {
+      const fecha = new Date(usuario.fechaCreacion);
+      fechaFormateada = fecha.toLocaleDateString('es-CL', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    }
+
+    const rolActual = usuario.rol || 'Cliente';
+    
+    fila.innerHTML = `
+      <td>${usuario.run}</td>
+      <td>${usuario.nombre} ${usuario.apellido}</td>
+      <td>${usuario.correo}</td>
+      <td>
+        <div class="dropdown">
+          <button class="btn btn-sm jugoseo-badge dropdown-toggle" type="button" 
+                  data-bs-toggle="dropdown" aria-expanded="false" 
+                  data-bs-boundary="viewport" data-bs-flip="true">
+            ${rolActual}
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="#" onclick="cambiarRolUsuario(${indice}, 'Cliente', event)">Cliente</a></li>
+            <li><a class="dropdown-item" href="#" onclick="cambiarRolUsuario(${indice}, 'Vendedor', event)">Vendedor</a></li>
+            <li><a class="dropdown-item" href="#" onclick="cambiarRolUsuario(${indice}, 'Administrador', event)">Administrador</a></li>
+          </ul>
+        </div>
+      </td>
+      <td>${fechaFormateada}</td>`;
+    cuerpo.appendChild(fila);
+  });
 }
 
 // ---------------------------------------------------------
@@ -690,8 +818,10 @@ function configurarMenuPorRol() {
   const linkProductos = document.getElementById('linkProductos');
   const linkPedidos = document.getElementById('linkPedidos');
   const linkRadioescuchas = document.getElementById('linkRadioescuchas');
+  const linkGestionUsuarios = document.getElementById('linkGestionUsuarios');
   const tituloPanel = document.getElementById('tituloPanel');
   const seccionRadioescuchas = document.getElementById('seccion-radioescuchas');
+  const seccionGestionUsuarios = document.getElementById('seccion-gestion-usuarios');
   const btnNuevoRadioescucha = document.getElementById('btnNuevoRadioescucha');
   
   if (rol === 'Vendedor') {
@@ -705,11 +835,13 @@ function configurarMenuPorRol() {
     if (linkProductos) linkProductos.classList.remove('d-none');
     if (linkPedidos) linkPedidos.classList.remove('d-none');
     
-    // Ocultar Radioescuchas para Vendedor
+    // Ocultar Radioescuchas y Gestión de usuarios para Vendedor
     if (linkRadioescuchas) linkRadioescuchas.classList.add('d-none');
+    if (linkGestionUsuarios) linkGestionUsuarios.classList.add('d-none');
     
-    // RF09: Vendedor no puede acceder a sección de radioescuchas
+    // RF09: Vendedor no puede acceder a sección de radioescuchas ni gestión de usuarios
     if (seccionRadioescuchas) seccionRadioescuchas.classList.add('d-none');
+    if (seccionGestionUsuarios) seccionGestionUsuarios.classList.add('d-none');
     if (btnNuevoRadioescucha) btnNuevoRadioescucha.classList.add('d-none');
     
     // Asegurar que el panel principal sea visible
@@ -730,9 +862,11 @@ function configurarMenuPorRol() {
     if (linkProductos) linkProductos.classList.remove('d-none');
     if (linkPedidos) linkPedidos.classList.remove('d-none');
     if (linkRadioescuchas) linkRadioescuchas.classList.remove('d-none');
+    if (linkGestionUsuarios) linkGestionUsuarios.classList.remove('d-none');
     
-    // Mostrar sección de radioescuchas
+    // Mostrar sección de radioescuchas y gestión de usuarios
     if (seccionRadioescuchas) seccionRadioescuchas.classList.remove('d-none');
+    if (seccionGestionUsuarios) seccionGestionUsuarios.classList.remove('d-none');
     if (btnNuevoRadioescucha) btnNuevoRadioescucha.classList.remove('d-none');
     
     // Asegurar que el panel principal sea visible
@@ -750,6 +884,19 @@ function configurarMenuPorRol() {
 document.addEventListener('DOMContentLoaded', () => {
   productosAdmin = obtenerProductos();
   radioescuchasAdmin = JSON.parse(localStorage.getItem(CLAVE_RADIOESCUCHAS_ADMIN)) || [];
+  
+  // Migración: Agregar campo 'rol' y 'fechaCreacion' a usuarios existentes que no lo tengan
+  radioescuchasAdmin = radioescuchasAdmin.map(usuario => {
+    if (!usuario.rol) {
+      return { ...usuario, rol: 'Cliente' };
+    }
+    if (!usuario.fechaCreacion) {
+      return { ...usuario, fechaCreacion: new Date().toISOString() };
+    }
+    return usuario;
+  });
+  guardarRadioescuchasAdmin();
+  
   pedidosAdmin = obtenerPedidos();
 
   // RF09: Configurar menú según rol

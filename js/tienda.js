@@ -56,8 +56,12 @@ function mostrarToast(mensaje, tipo = 'exito') {
 // RNF05 / persistencia: cargar y guardar el carrito
 // ---------------------------------------------------------
 function cargarCarrito() {
-  const guardado = localStorage.getItem(CLAVE_CARRITO);
-  carrito = guardado ? JSON.parse(guardado) : [];
+  try {
+    const guardado = localStorage.getItem(CLAVE_CARRITO);
+    carrito = guardado ? JSON.parse(guardado) : [];
+  } catch (error) {
+    carrito = [];
+  }
 }
 
 function guardarCarrito() {

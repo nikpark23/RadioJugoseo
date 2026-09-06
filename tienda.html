@@ -68,6 +68,10 @@
   <script>
     // El pago se deja pendiente hasta implementar el backend
     document.getElementById('btnPagar').addEventListener('click', () => {
+      if (carrito.length === 0) {
+        mostrarToast('Debes agregar productos al carrito antes de continuar.', 'error');
+        return;
+      }
       mostrarToast('El pago se habilitará más adelante. Por ahora, tu carrito queda guardado.', 'info');
     });
   </script>

@@ -265,6 +265,10 @@ function mostrarToastRegistro(mensaje, tipo = 'exito') {
 // Inicio
 // ---------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('btnVolver').addEventListener('click', () => {
+    window.history.back();
+  });
+
   poblarRegiones();
 
   document.getElementById('regRegion').addEventListener('change', actualizarComunas);

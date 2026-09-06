@@ -9,12 +9,33 @@
 const CLAVE_SESION = 'jugoseoUsuario';
 const CLAVE_RADIOESCUCHAS = 'jugoseoRadioescuchas';
 
-// Cuenta de administrador fija (no hay flujo de registro para admins).
-const ADMIN_CREDENCIALES = {
-  correo: 'admin@jugoseo.com',
-  password: 'admin123',
-  nombre: 'Administrador',
-};
+// Dominios autorizados según RF07
+const DOMINIOS_AUTORIZADOS = ['@duoc.cl', '@profesor.duoc.cl', '@gmail.com'];
+
+// Usuarios de demostración según RF07
+const USUARIOS_DEMOSTRACION = [
+  {
+    correo: 'cliente@duoc.cl',
+    password: 'client123',
+    nombre: 'Juan',
+    apellido: 'Pérez',
+    rol: 'Cliente'
+  },
+  {
+    correo: 'vendedor@profesor.duoc.cl',
+    password: 'vendedor1',
+    nombre: 'María',
+    apellido: 'García',
+    rol: 'Vendedor'
+  },
+  {
+    correo: 'admin@jugoseo.com',
+    password: 'admin123',
+    nombre: 'Administrador',
+    apellido: 'Sistema',
+    rol: 'Administrador'
+  }
+];
 
 function marcarValidezLogin(elemento, esValido, mensajeError) {
   const feedback = elemento.parentElement.querySelector('.invalid-feedback');
@@ -26,6 +47,23 @@ function marcarValidezLogin(elemento, esValido, mensajeError) {
     elemento.classList.add('is-invalid');
     if (feedback && mensajeError) feedback.textContent = mensajeError;
   }
+}
+
+// Validación de formato de correo con regex según RF07
+function validarFormatoCorreo(correo) {
+  const regexCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return regexCorreo.test(correo);
+}
+
+// Validación de dominios autorizados según RF07
+// Excepción: admin@jugoseo.com es permitido para el administrador
+function validarDominioAutorizado(correo) {
+  const correoLower = correo.toLowerCase();
+  // Permitir admin@jugoseo.com como excepción
+  if (correoLower === 'admin@jugoseo.com') {
+    return true;
+  }
+  return DOMINIOS_AUTORIZADOS.some(dominio => correoLower.endsWith(dominio));
 }
 
 function mostrarToastLogin(mensaje, tipo = 'exito') {
@@ -45,16 +83,27 @@ function mostrarToastLogin(mensaje, tipo = 'exito') {
 }
 
 // ---------------------------------------------------------
-// Busca las credenciales del usuario en los datos guardados
-// por registro.js, o en la cuenta fija de Administrador.
+// Busca las credenciales del usuario en los usuarios de demostración
+// o en los datos guardados por registro.js.
 // ---------------------------------------------------------
 function buscarCuenta(correo, password) {
   const correoLimpio = correo.trim().toLowerCase();
 
-  if (correoLimpio === ADMIN_CREDENCIALES.correo && password === ADMIN_CREDENCIALES.password) {
-    return { encontrada: true, rol: 'Administrador', nombre: ADMIN_CREDENCIALES.nombre, correo: correoLimpio };
+  // Primero buscar en usuarios de demostración
+  const usuarioDemo = USUARIOS_DEMOSTRACION.find(
+    u => u.correo.toLowerCase() === correoLimpio && u.password === password
+  );
+
+  if (usuarioDemo) {
+    return {
+      encontrada: true,
+      rol: usuarioDemo.rol,
+      nombre: `${usuarioDemo.nombre} ${usuarioDemo.apellido}`.trim(),
+      correo: correoLimpio
+    };
   }
 
+  // Si no encuentra en demo, buscar en radioescuchas registrados
   const radioescuchas = JSON.parse(localStorage.getItem(CLAVE_RADIOESCUCHAS)) || [];
   const cuenta = radioescuchas.find(r => (r.correo || '').toLowerCase() === correoLimpio);
 
@@ -81,27 +130,39 @@ function manejarLogin(evento) {
   const password = document.getElementById('loginPassword');
 
   let formularioValido = true;
+  const correoTrim = usuario.value.trim();
 
-  if (!usuario.value.trim()) {
-    marcarValidezLogin(usuario, false, 'Ingresa tu correo.');
+  // Validación de correo electrónico según RF07
+  if (!correoTrim) {
+    marcarValidezLogin(usuario, false, 'Ingrese su correo electrónico');
+    formularioValido = false;
+  } else if (correoTrim.length > 100) {
+    marcarValidezLogin(usuario, false, 'El correo no puede superar 100 caracteres');
+    formularioValido = false;
+  } else if (!validarFormatoCorreo(correoTrim)) {
+    marcarValidezLogin(usuario, false, 'El correo debe tener un formato válido (ejemplo@dominio.com)');
+    formularioValido = false;
+  } else if (!validarDominioAutorizado(correoTrim)) {
+    marcarValidezLogin(usuario, false, 'El dominio debe ser @duoc.cl, @profesor.duoc.cl o @gmail.com');
     formularioValido = false;
   } else {
     marcarValidezLogin(usuario, true);
   }
 
+  // Validación de contraseña según RF07
   const largoPassword = password.value.length;
   if (largoPassword === 0) {
-    marcarValidezLogin(password, false, 'Ingresa tu contraseña.');
+    marcarValidezLogin(password, false, 'Ingrese su contraseña');
     formularioValido = false;
   } else if (largoPassword < 4 || largoPassword > 10) {
-    marcarValidezLogin(password, false, 'La contraseña debe tener entre 4 y 10 caracteres.');
+    marcarValidezLogin(password, false, 'La contraseña debe tener entre 4 y 10 caracteres');
     formularioValido = false;
   } else {
     marcarValidezLogin(password, true);
   }
 
   if (!formularioValido) {
-    mostrarToastLogin('Revisa los campos marcados en rojo.', 'error');
+    mostrarToastLogin('Revisa los campos marcados en rojo', 'error');
     return;
   }
 
@@ -109,8 +170,8 @@ function manejarLogin(evento) {
 
   if (!resultado.encontrada) {
     marcarValidezLogin(usuario, false, ' ');
-    marcarValidezLogin(password, false, 'Correo o contraseña incorrectos.');
-    mostrarToastLogin('Correo o contraseña incorrectos.', 'error');
+    marcarValidezLogin(password, false, 'Correo o contraseña incorrectos');
+    mostrarToastLogin('Correo o contraseña incorrectos', 'error');
     return;
   }
 

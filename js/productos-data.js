@@ -7,6 +7,9 @@
 
 const CLAVE_PRODUCTOS = 'jugoseoProductos';
 
+// RF02: Categorías válidas definidas por el sistema
+const CATEGORIAS_VALIDAS = ['Poleras', 'Tazas', 'Eventos'];
+
 const PRODUCTOS_INICIALES = [
   { id: 1, nombre: 'Polera Jugoseo Classic',   categoria: 'Poleras',    precio: 19990, stock: 12,  imagen: 'img/polera1.jpg' },
   { id: 2, nombre: 'Vasos Jugoseo Neon',       categoria: 'Tazas',      precio: 6990,  stock: 20,  imagen: 'img/vasos.png' },
@@ -36,4 +39,9 @@ function guardarProductos(listaProductos) {
 
 function generarIdProducto(listaProductos) {
   return listaProductos.length ? Math.max(...listaProductos.map(p => p.id)) + 1 : 1;
+}
+
+// RF02: Validar que la categoría sea válida
+function esCategoriaValida(categoria) {
+  return CATEGORIAS_VALIDAS.includes(categoria);
 }

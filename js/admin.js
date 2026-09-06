@@ -101,6 +101,18 @@ function guardarProductoAdmin(evento) {
   const stock = parseInt(document.getElementById('productoStock').value, 10);
   const imagen = document.getElementById('productoImagen').value.trim();
 
+  // RF02: Validación de longitud del nombre (máximo 100 caracteres)
+  if (nombre.length > 100) {
+    mostrarToastAdmin('El nombre del producto no puede superar los 100 caracteres.', 'error');
+    return;
+  }
+
+  // RF02: Validación de categoría predefinida
+  if (!esCategoriaValida(categoria)) {
+    mostrarToastAdmin('La categoría seleccionada no es válida.', 'error');
+    return;
+  }
+
   if (!nombre || !categoria || isNaN(precio) || precio < 0 || isNaN(stock) || stock < 0) {
     mostrarToastAdmin('Revisa los datos del producto: todos los campos son obligatorios y deben ser válidos.', 'error');
     return;
@@ -247,6 +259,17 @@ function eliminarRadioescucha(indice) {
   guardarRadioescuchasAdmin();
   renderizarTablaRadioescuchas();
   mostrarToastAdmin('Radioescucha eliminado.', 'info');
+}
+
+// ---------------------------------------------------------
+// RF02: Validar que la categoría sea válida (importado de productos-data.js)
+// ---------------------------------------------------------
+function esCategoriaValida(categoria) {
+  if (typeof CATEGORIAS_VALIDAS !== 'undefined') {
+    return CATEGORIAS_VALIDAS.includes(categoria);
+  }
+  // Fallback por compatibilidad si CATEGORIAS_VALIDAS no está disponible
+  return ['Poleras', 'Tazas', 'Eventos'].includes(categoria);
 }
 
 // ---------------------------------------------------------

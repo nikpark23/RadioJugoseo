@@ -22,6 +22,15 @@ function formatearCLP(valor) {
   return valor.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
 }
 
+// RF02: Validar que la categoría sea válida (importado de productos-data.js)
+function esCategoriaValida(categoria) {
+  if (typeof CATEGORIAS_VALIDAS !== 'undefined') {
+    return CATEGORIAS_VALIDAS.includes(categoria);
+  }
+  // Fallback por compatibilidad si CATEGORIAS_VALIDAS no está disponible
+  return ['Poleras', 'Tazas', 'Eventos'].includes(categoria);
+}
+
 function buscarProducto(id) {
   return PRODUCTOS.find(p => p.id === id);
 }
@@ -62,7 +71,27 @@ function renderizarProductos() {
   const grid = document.getElementById('gridProductos');
   grid.innerHTML = '';
 
+  let productosValidos = 0;
+
   PRODUCTOS.forEach(producto => {
+    // RF02: Validaciones de integridad de datos
+    if (!producto.id || !producto.nombre || !producto.categoria || !producto.imagen || 
+        isNaN(producto.precio) || producto.precio < 0 || isNaN(producto.stock) || producto.stock < 0) {
+      return; // Skip productos con datos inválidos
+    }
+
+    // RF02: Validar longitud del nombre (máximo 100 caracteres)
+    if (producto.nombre.length > 100) {
+      return; // Skip productos con nombre demasiado largo
+    }
+
+    // RF02: Validar que la categoría sea válida
+    if (!esCategoriaValida(producto.categoria)) {
+      return; // Skip productos con categoría inválida
+    }
+
+    productosValidos++;
+
     const agotado = producto.stock === 0;
     const pocasUnidades = producto.stock > 0 && producto.stock <= 5;
 
@@ -91,6 +120,11 @@ function renderizarProductos() {
       </div>`;
     grid.appendChild(col);
   });
+
+  // RF02: Mensaje de catálogo vacío
+  if (productosValidos === 0) {
+    grid.innerHTML = '<p class="jugoseo-card-texto text-center py-4">No hay productos disponibles por el momento.</p>';
+  }
 }
 
 // ---------------------------------------------------------

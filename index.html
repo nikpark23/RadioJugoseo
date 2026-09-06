@@ -170,10 +170,58 @@
 
     audio.volume = volumen.value;
 
+    // Temporizador para detectar conexión lenta
+    let timeoutConectando = null;
+
+    // Validación de URL antes de intentar reproducir
+    function validarURL() {
+      const source = audio.querySelector('source');
+      if (!source || !source.src || source.src.trim() === '') {
+        estadoPlayer.textContent = 'URL de transmisión no configurada';
+        return false;
+      }
+
+      try {
+        const url = new URL(source.src);
+        if (!url.protocol.startsWith('http')) {
+          estadoPlayer.textContent = 'URL de transmisión inválida';
+          return false;
+        }
+        return true;
+      } catch (e) {
+        estadoPlayer.textContent = 'URL de transmisión inválida';
+        return false;
+      }
+    }
+
+    // Verificar conexión a internet
+    function verificarConexion() {
+      if (!navigator.onLine) {
+        estadoPlayer.textContent = 'Sin conexión a internet';
+        return false;
+      }
+      return true;
+    }
+
     btnPlay.addEventListener('click', () => {
       if (audio.paused) {
-        audio.play().catch(() => {
-          estadoPlayer.textContent = 'No se pudo conectar';
+        // Validar URL antes de intentar reproducir
+        if (!validarURL()) {
+          return;
+        }
+
+        // Verificar conexión a internet
+        if (!verificarConexion()) {
+          return;
+        }
+
+        audio.play().catch((error) => {
+          console.error('Error de reproducción:', error);
+          if (!navigator.onLine) {
+            estadoPlayer.textContent = 'Sin conexión a internet';
+          } else {
+            estadoPlayer.textContent = 'Transmisión no disponible';
+          }
         });
       } else {
         audio.pause();
@@ -184,16 +232,77 @@
       iconoPlay.style.display = 'none';
       iconoPause.style.display = 'inline';
       estadoPlayer.textContent = 'Transmitiendo en vivo';
+      clearTimeout(timeoutConectando);
     });
 
     audio.addEventListener('pause', () => {
       iconoPlay.style.display = 'inline';
       iconoPause.style.display = 'none';
-      estadoPlayer.textContent = 'Pausado';
+      if (audio.error) {
+        // Si se pausó debido a un error, mantener el mensaje de error
+        // No cambiar el estado a "Pausado"
+      } else {
+        estadoPlayer.textContent = 'Pausado';
+      }
     });
 
     audio.addEventListener('waiting', () => {
       estadoPlayer.textContent = 'Conectando...';
+      // Iniciar temporizador de 15 segundos
+      clearTimeout(timeoutConectando);
+      timeoutConectando = setTimeout(() => {
+        if (estadoPlayer.textContent === 'Conectando...') {
+          estadoPlayer.textContent = 'Error de conexión presente';
+        }
+      }, 10000);
+    });
+
+    // Manejo específico de errores del audio
+    audio.addEventListener('error', (e) => {
+      console.error('Error del audio:', audio.error);
+      const error = audio.error;
+
+      switch (error.code) {
+        case MediaError.MEDIA_ERR_ABORTED:
+          estadoPlayer.textContent = 'Reproducción interrumpida';
+          break;
+        case MediaError.MEDIA_ERR_NETWORK:
+          estadoPlayer.textContent = 'Error de conexión al streaming';
+          break;
+        case MediaError.MEDIA_ERR_DECODE:
+          estadoPlayer.textContent = 'Error al decodificar el audio';
+          break;
+        case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+          if (!navigator.onLine) {
+            estadoPlayer.textContent = 'Sin conexión a internet';
+          } else {
+            estadoPlayer.textContent = 'Formato de audio no soportado o servicio no disponible';
+          }
+          break;
+        default:
+          estadoPlayer.textContent = 'Error en la transmisión';
+      }
+
+      // Asegurar que el botón muestre el icono de play
+      iconoPlay.style.display = 'inline';
+      iconoPause.style.display = 'none';
+    });
+
+    // Detectar cambios en la conexión a internet
+    window.addEventListener('online', () => {
+      if (!audio.paused && audio.error) {
+        // Si estaba reproduciendo y hubo error, intentar reconectar
+        audio.play().catch(() => {
+          estadoPlayer.textContent = 'Transmisión no disponible';
+        });
+      }
+    });
+
+    window.addEventListener('offline', () => {
+      if (!audio.paused) {
+        audio.pause();
+        estadoPlayer.textContent = 'Sin conexión a internet';
+      }
     });
 
     volumen.addEventListener('input', () => {

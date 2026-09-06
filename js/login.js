@@ -12,6 +12,9 @@ const CLAVE_RADIOESCUCHAS = 'jugoseoRadioescuchas';
 // Dominios autorizados según RF07
 const DOMINIOS_AUTORIZADOS = ['@duoc.cl', '@profesor.duoc.cl', '@gmail.com'];
 
+// RF11 - Roles válidos permitidos
+const ROLES_VALIDOS = ['Cliente', 'Vendedor', 'Administrador'];
+
 // Usuarios de demostración según RF07 y RF05 (tipos de usuario)
 const USUARIOS_DEMOSTRACION = [
   {
@@ -67,6 +70,47 @@ function validarDominioAutorizado(correo) {
     return true;
   }
   return DOMINIOS_AUTORIZADOS.some(dominio => correoLower.endsWith(dominio));
+}
+
+// RF11 - Validación de roles válidos
+function esRolValido(rol) {
+  return ROLES_VALIDOS.includes(rol);
+}
+
+// RF11 - Manejo de errores de sessionStorage
+function guardarSesionSegura(datosSesion) {
+  try {
+    sessionStorage.setItem(CLAVE_SESION, JSON.stringify(datosSesion));
+    return true;
+  } catch (error) {
+    console.error('Error al guardar sesión en sessionStorage:', error);
+    mostrarToastLogin('No es posible conservar la sesión. Verifica que tu navegador permita el almacenamiento local.', 'error');
+    return false;
+  }
+}
+
+// RF11 - Obtener sesión de forma segura con validación de rol
+function obtenerSesionSegura() {
+  try {
+    const sesionStr = sessionStorage.getItem(CLAVE_SESION);
+    if (!sesionStr) {
+      return null;
+    }
+    const sesion = JSON.parse(sesionStr);
+    
+    // RF11 - Validar que el rol sea válido
+    if (sesion && sesion.rol && !esRolValido(sesion.rol)) {
+      console.error('Rol inválido detectado:', sesion.rol);
+      sessionStorage.removeItem(CLAVE_SESION);
+      return null;
+    }
+    
+    return sesion;
+  } catch (error) {
+    console.error('Error al leer sesión de sessionStorage:', error);
+    sessionStorage.removeItem(CLAVE_SESION);
+    return null;
+  }
 }
 
 function mostrarToastLogin(mensaje, tipo = 'exito') {
@@ -180,12 +224,17 @@ function manejarLogin(evento) {
   }
 
   // Sin backend: se guarda la sesión localmente para simular el acceso.
-  sessionStorage.setItem(CLAVE_SESION, JSON.stringify({
+  const datosSesion = {
     usuario: resultado.nombre,
     correo: resultado.correo,
     rol: resultado.rol,
     tipo: resultado.tipo || null,
-  }));
+  };
+
+  // RF11 - Guardar sesión de forma segura con manejo de errores
+  if (!guardarSesionSegura(datosSesion)) {
+    return; // El mensaje de error ya se mostró en guardarSesionSegura
+  }
 
   mostrarToastLogin(`¡Bienvenido de vuelta, ${resultado.nombre}!`, 'exito');
   setTimeout(() => {

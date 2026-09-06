@@ -12,13 +12,30 @@
 
   <script>
     // ---------------------------------------------------------
-    // RF09 - Control de acceso por rol: Administrador y Vendedor
+    // RF09 / RF11 - Control de acceso por rol: Administrador y Vendedor
+    // RF11 - Validación de rol válido y manejo de errores de sessionStorage
     // ---------------------------------------------------------
-    const sesionAdminGuard = JSON.parse(sessionStorage.getItem('jugoseoUsuario') || 'null');
-    if (!sesionAdminGuard) {
+    try {
+      const sesionStr = sessionStorage.getItem('jugoseoUsuario');
+      const rolesValidos = ['Cliente', 'Vendedor', 'Administrador'];
+      
+      if (!sesionStr) {
+        window.location.replace('index.html');
+      } else {
+        const sesionAdminGuard = JSON.parse(sesionStr);
+        
+        // RF11 - Validar que el rol sea válido
+        if (!sesionAdminGuard || !sesionAdminGuard.rol || !rolesValidos.includes(sesionAdminGuard.rol)) {
+          sessionStorage.removeItem('jugoseoUsuario');
+          window.location.replace('index.html');
+        } else if (sesionAdminGuard.rol !== 'Administrador' && sesionAdminGuard.rol !== 'Vendedor') {
+          window.location.replace('app.html');
+        }
+      }
+    } catch (e) {
+      // RF11 - Error al parsear JSON, eliminar sesión y redirigir
+      sessionStorage.removeItem('jugoseoUsuario');
       window.location.replace('index.html');
-    } else if (sesionAdminGuard.rol !== 'Administrador' && sesionAdminGuard.rol !== 'Vendedor') {
-      window.location.replace('app.html');
     }
   </script>
 </head>

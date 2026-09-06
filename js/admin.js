@@ -9,6 +9,9 @@
 const CLAVE_RADIOESCUCHAS_ADMIN = 'jugoseoRadioescuchas';
 const CLAVE_PEDIDOS_ADMIN = 'jugoseoPedidos';
 
+// RF11 - Roles válidos permitidos
+const ROLES_VALIDOS_ADMIN = ['Cliente', 'Vendedor', 'Administrador'];
+
 // ---------------------------------------------------------
 // RF09: Estados permitidos para pedidos
 // ---------------------------------------------------------
@@ -51,13 +54,8 @@ const PEDIDOS_INICIALES = [
   }
 ];
 
-// ---------------------------------------------------------
-// RF05: Tipos de usuario implementados
-// Nota: El sistema utiliza "Socio VIP" y "Radioescucha Oficial" 
-// como tipos de usuario, consistentes entre registro y admin
-// ---------------------------------------------------------
 
-//Agregar inicio de sesion de los usuarios de arriba (Maria garcia como vendedor y juan perez como cliente) con sus respectivos correos y contraseñas. Si ya existen en la pagina, que solamente los remplaces.
+
 // ---------------------------------------------------------
 // RF06: Datos de Región -> Comunas (subset representativo)
 // ---------------------------------------------------------
@@ -802,11 +800,29 @@ function mostrarToastAdmin(mensaje, tipo = 'exito') {
 }
 
 // ---------------------------------------------------------
-// RF09: Obtener rol del usuario actual
+// RF09 / RF11: Obtener rol del usuario actual con validación
 // ---------------------------------------------------------
 function obtenerRolUsuario() {
-  const sesion = JSON.parse(sessionStorage.getItem('jugoseoUsuario') || 'null');
-  return sesion ? sesion.rol : null;
+  try {
+    const sesionStr = sessionStorage.getItem('jugoseoUsuario');
+    if (!sesionStr) {
+      return null;
+    }
+    const sesion = JSON.parse(sesionStr);
+    
+    // RF11 - Validar que el rol sea válido
+    if (sesion && sesion.rol && ROLES_VALIDOS_ADMIN.includes(sesion.rol)) {
+      return sesion.rol;
+    }
+    
+    // RF11 - Rol inválido, eliminar sesión
+    sessionStorage.removeItem('jugoseoUsuario');
+    return null;
+  } catch (error) {
+    console.error('Error al leer sesión de sessionStorage:', error);
+    sessionStorage.removeItem('jugoseoUsuario');
+    return null;
+  }
 }
 
 // ---------------------------------------------------------

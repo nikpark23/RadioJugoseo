@@ -17,10 +17,25 @@
 
   <script>
     // ---------------------------------------------------------
-    // RF07 / protección de acceso: sin sesión, no se puede ver
-    // esta página. Se ejecuta antes de pintar el contenido.
+    // RF07 / RF11 - protección de acceso: sin sesión o rol inválido,
+    // no se puede ver esta página. Se ejecuta antes de pintar el contenido.
     // ---------------------------------------------------------
-    if (!sessionStorage.getItem('jugoseoUsuario')) {
+    try {
+      const sesionStr = sessionStorage.getItem('jugoseoUsuario');
+      if (!sesionStr) {
+        window.location.replace('index.html');
+      } else {
+        const sesion = JSON.parse(sesionStr);
+        // RF11 - Validar que el rol sea válido
+        const rolesValidos = ['Cliente', 'Vendedor', 'Administrador'];
+        if (!sesion || !sesion.rol || !rolesValidos.includes(sesion.rol)) {
+          sessionStorage.removeItem('jugoseoUsuario');
+          window.location.replace('index.html');
+        }
+      }
+    } catch (e) {
+      // RF11 - Si hay error al parsear JSON, eliminar sesión y redirigir
+      sessionStorage.removeItem('jugoseoUsuario');
       window.location.replace('index.html');
     }
   </script>
@@ -128,16 +143,35 @@
   <script>
     // ---------------------------------------------------------
     // Saludo con el usuario conectado + cerrar sesión
+    // RF11 - Validación de rol en la lectura de sesión
     // ---------------------------------------------------------
-    const sesion = JSON.parse(sessionStorage.getItem('jugoseoUsuario') || 'null');
-    if (sesion) {
-      document.getElementById('saludoUsuario').textContent = `Hola, ${sesion.usuario}`;
-      if (sesion.rol === 'Administrador') {
-        document.getElementById('navPanelAdmin').classList.remove('d-none');
-      } else if (sesion.rol === 'Vendedor') {
-        document.getElementById('navPanelVentas').classList.remove('d-none');
+    try {
+      const sesionStr = sessionStorage.getItem('jugoseoUsuario');
+      const rolesValidos = ['Cliente', 'Vendedor', 'Administrador'];
+      
+      if (sesionStr) {
+        const sesion = JSON.parse(sesionStr);
+        
+        // RF11 - Validar que el rol sea válido
+        if (sesion && sesion.rol && rolesValidos.includes(sesion.rol)) {
+          document.getElementById('saludoUsuario').textContent = `Hola, ${sesion.usuario}`;
+          if (sesion.rol === 'Administrador') {
+            document.getElementById('navPanelAdmin').classList.remove('d-none');
+          } else if (sesion.rol === 'Vendedor') {
+            document.getElementById('navPanelVentas').classList.remove('d-none');
+          }
+        } else {
+          // RF11 - Rol inválido, eliminar sesión y redirigir
+          sessionStorage.removeItem('jugoseoUsuario');
+          window.location.href = 'index.html';
+        }
       }
+    } catch (e) {
+      // RF11 - Error al parsear JSON, eliminar sesión y redirigir
+      sessionStorage.removeItem('jugoseoUsuario');
+      window.location.href = 'index.html';
     }
+    
     document.getElementById('btnCerrarSesion').addEventListener('click', () => {
       sessionStorage.removeItem('jugoseoUsuario');
       window.location.href = 'index.html';
